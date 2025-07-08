@@ -1,0 +1,104 @@
+﻿@page "/teamManagement"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SportStatisticsApp.Data
+@using SportStatisticsApp.Models
+@attribute [Authorize(Roles = $"{Roles.Coach}")]
+@rendermode InteractiveServer
+
+<h3>TeamManagement</h3>
+<MudDataGrid Items="_players" Filterable="false"  SortMode="@SortMode.None" Groupable="false">
+    <Columns>
+        <PropertyColumn Property="x => x.Id" Title="Id"  />
+        <PropertyColumn Property="x => x.DisplayName" Title="Name"/>
+        <PropertyColumn Property="x => x.Email" Title="Email"/>
+
+        <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await RemoveFromTeam(@context.Item))" Color="@Color.Primary">Kick from Team</MudButton>
+                    </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+       
+    </Columns>
+</MudDataGrid>
+<MudDataGrid Items="@_normalUser" Filterable="false" SortMode="@SortMode.None" Groupable="false">
+    <Columns>
+        <PropertyColumn Property="x => x.Id" Title="Id"  />
+        <PropertyColumn Property="x => x.DisplayName" Title="Name"/>
+        <PropertyColumn Property="x => x.Email" Title="Email" />
+        <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudStack Row>
+                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await AddUserToTeam(@context.Item))" Color="@Color.Primary">Add To Team</MudButton>
+                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await DeleteUser(@context.Item))" Color="@Color.Primary">Delete</MudButton>
+                </MudStack>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+
+    private async Task<string> GetUserRoles(ApplicationUser user)
+    {
+        return string.Join('/',await _userManager.GetRolesAsync(user));
+    }
+    private async Task DeleteUser(ApplicationUser user)
+    {
+        await _userManager.DeleteAsync(user);
+        await GetUsers();
+    }
+
+    private async Task RemoveFromTeam(ApplicationUser user)
+    {
+        await _userManager.AddToRoleAsync(user,Roles.NormalUser);
+        await _userManager.RemoveFromRoleAsync(user,Roles.Coach);
+        await _userManager.RemoveFromRoleAsync(user,Roles.TeamPlayer);
+        await GetUsers();
+    }
+    private async Task AddUserToTeam(ApplicationUser user)
+    {
+        await _userManager.AddToRoleAsync(user,Roles.TeamPlayer);
+        await _userManager.RemoveFromRoleAsync(user,Roles.Coach);
+        await _userManager.RemoveFromRoleAsync(user,Roles.NormalUser);
+        await GetUsers();
+        
+    }
+    [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
+    private List<ApplicationUser> _normalUser;
+    private List<ApplicationUser> _players;
+    protected override async Task OnInitializedAsync()
+    {
+        
+        await GetUsers();
+    }
+
+    private async Task GetUsers()
+    {
+        _normalUser = new List<ApplicationUser>();
+        _normalUser.EnsureCapacity(32);
+        _players = new List<ApplicationUser>();
+        _players.EnsureCapacity(32);
+        foreach (var user in _userManager.Users.Include(x => x.MatchesPlayed))
+        {
+            if (await _userManager.IsInRoleAsync(user, Roles.TeamPlayer))
+            {
+                _players.Add(user);
+            }
+
+            if (await _userManager.IsInRoleAsync(user, Roles.NormalUser))
+            {
+                _normalUser.Add(user);
+            }
+        }
+    }
+   
+
+    
+
+}

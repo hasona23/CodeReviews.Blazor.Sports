@@ -1,0 +1,71 @@
+﻿@page "/matchMaking"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SportStatisticsApp.Data
+@using SportStatisticsApp.Models
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = $"{Roles.Coach}")]
+
+
+@if (_match == null)
+{
+    
+}
+else
+{
+    <MudText Style="align-self: center;justify-self: center">@_match.Name</MudText>
+    <MudContainer Style="display: grid;grid-template-columns: repeat(3,33%);grid-gap: 2px">
+       
+        @if (_users != null)
+        {
+            @foreach (var user in _users)
+            {
+                <MudCard >
+                    <MudCardHeader Style="display:flex;align-items: center;justify-content: center">
+                        <MudText>
+                            @user.DisplayName
+                        </MudText>
+                    </MudCardHeader>
+
+                    <MudCardContent Style="display: flex;align-items: center;justify-content: center">
+                        <span>
+                            @foreach (var matchActionType in Enum.GetValues<MatchActionType>())
+                            {
+                                <MudButton OnClick="async ()=> await AddAction(user,matchActionType)">@matchActionType.ToString()</MudButton>
+                            }
+                        </span>
+                    </MudCardContent>
+
+                </MudCard>
+            }
+        }
+    </MudContainer>
+    
+}
+
+@code {
+    [Inject] private ApplicationDbContext _dbContext { get; set; }
+    [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
+    private List<ApplicationUser> _users { get; set; }
+    private Match _match = null;
+    protected override async Task OnInitializedAsync()
+    {
+        var users = await _userManager.GetUsersInRoleAsync(Roles.TeamPlayer);
+        users = users.ToList().AsQueryable().Include(user => user.MatchActions).Include(user=>user.MatchesPlayed).ToList();
+        _users = users.ToList();
+        _match = _dbContext.Matches.First();
+    }
+
+    private async Task AddAction(ApplicationUser user,MatchActionType matchAction)
+    {
+        await _dbContext.MatchActions.AddAsync(new MatchAction()
+        {
+            ActionType = matchAction,
+            Match = _match,
+            Player = user,
+        });
+        await _dbContext.SaveChangesAsync();
+        Console.WriteLine($"ADDED ACTION: {user.DisplayName} - {matchAction.ToString()}");
+    }
+}

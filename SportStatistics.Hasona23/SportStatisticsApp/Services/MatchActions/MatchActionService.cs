@@ -1,11 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SportStatisticsApp.Data;
 using SportStatisticsApp.Models;
-using SportStatisticsApp.Models.Dto;
 
 namespace SportStatisticsApp.Services.MatchActions;
 
-public class MatchActionService:IMatchActionService
+public class MatchActionService : IMatchActionService
 {
     private IDbContextFactory<ApplicationDbContext> _dbContextFactory;
     private ILogger<MatchActionService> _logger;
@@ -15,7 +14,7 @@ public class MatchActionService:IMatchActionService
         _dbContextFactory = dbContextFactory;
         _logger = logger;
     }
-    
+
     public async Task<List<MatchAction>> GetAllMatchActionsAsync()
     {
         await using (var db = await _dbContextFactory.CreateDbContextAsync())
@@ -31,25 +30,29 @@ public class MatchActionService:IMatchActionService
         {
             return await db.MatchActions.FindAsync(id);
         }
-        
+
     }
 
-    public async Task<bool> CreateMatchActionAsync(MatchActionCreateDto matchActionDto)
+    public async Task<bool> CreateMatchActionAsync(MatchAction matchAction)
     {
         try
         {
-            
+
             await using (var db = await _dbContextFactory.CreateDbContextAsync())
             {
-                await db.AddAsync(new MatchAction(matchActionDto));
+                var user = await db.Users.FindAsync(matchAction.Player.Id);
+                var match = await db.Matches.FindAsync(matchAction.Match.Id);
+                matchAction.Player = user;
+                matchAction.Match = match;
+                await db.MatchActions.AddAsync(matchAction);
                 await db.SaveChangesAsync();
             }
-            
+
             return true;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            _logger.LogError($"Error creating match action({matchActionDto}): {e.Message}");
+            _logger.LogError($"Error creating match action({matchAction}): {e.Message}");
             return false;
         }
     }
@@ -60,15 +63,15 @@ public class MatchActionService:IMatchActionService
         {
             await using (var db = await _dbContextFactory.CreateDbContextAsync())
             {
-                
+
                 var matchActionFound = await db.MatchActions.FindAsync(matchAction.Id);
                 if (matchActionFound == null) return false;
-                matchActionFound.ActionType = matchAction.ActionType; 
-                matchActionFound.TimeAfterMatchBeginSeconds =  matchActionFound.TimeAfterMatchBeginSeconds;
+                matchActionFound.ActionType = matchAction.ActionType;
+                matchActionFound.TimeAfterMatchBeginSeconds = matchActionFound.TimeAfterMatchBeginSeconds;
 
                 await db.SaveChangesAsync();
             }
-           
+
             return true;
         }
         catch (Exception e)
@@ -86,11 +89,11 @@ public class MatchActionService:IMatchActionService
             {
                 var matchActionFound = await db.MatchActions.FindAsync(id);
                 if (matchActionFound == null) return false;
-                db.Remove(matchActionFound); 
-                await db.SaveChangesAsync(); 
+                db.Remove(matchActionFound);
+                await db.SaveChangesAsync();
                 return true;
             }
-           
+
         }
         catch (Exception e)
         {

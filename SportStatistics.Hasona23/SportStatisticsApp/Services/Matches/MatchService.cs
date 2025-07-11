@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SportStatisticsApp.Data;
 using SportStatisticsApp.Models;
-using SportStatisticsApp.Models.Dto;
+using SportStatisticsApp.Models.Dtos;
 
 namespace SportStatisticsApp.Services.Matches;
 
@@ -32,22 +32,33 @@ public class MatchService : IMatchService
         }
     }
 
-    public async Task<bool> CreateMatchAsync(MatchCreateDto match)
+    public async Task<Match> CreateMatchAsync(MatchCreateDto matchDto)
     {
         try
         {
+
             await using (var db = await _dbContextFactory.CreateDbContextAsync())
             {
-                await db.Matches.AddAsync(new Match(match));
+                var players = await db.Users.Where(user => matchDto.playersId.Contains(user.Id)).ToListAsync();
+                var actions = await db.MatchActions.Where(action => matchDto.matchActionsId.Contains(action.Id)).ToListAsync();
+                var match = new Match()
+                {
+                    Name = matchDto.Name,
+                    Date = matchDto.Date,
+                    Players = players,
+                    Actions = actions,
+                };
+                await db.Matches.AddAsync(match);
                 await db.SaveChangesAsync();
+                return match;
             }
 
-            return true;
+
         }
         catch (Exception e)
         {
-            _logger.LogError($"Error Adding Match of Name:{match.Name} Date:{match.MatchDate}.\nERROR:{e.Message}");
-            return false;
+            _logger.LogError($"Error Adding Match of Name:{matchDto.Name} Date:{matchDto.Date}.\nERROR:{e}");
+            return null;
         }
     }
 

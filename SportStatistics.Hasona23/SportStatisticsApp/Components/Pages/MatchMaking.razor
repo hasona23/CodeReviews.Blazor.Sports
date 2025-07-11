@@ -6,7 +6,7 @@
 @using Microsoft.EntityFrameworkCore
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
-@using SportStatisticsApp.Models.Dto
+@using SportStatisticsApp.Models.Dtos
 @using SportStatisticsApp.Services.MatchActions
 @using SportStatisticsApp.Services.Matches
 @using SportStatisticsApp.Services.Users
@@ -95,8 +95,14 @@ else
         if (!user.IsActivePlayer)
             return;
         await _matchActionService.CreateMatchActionAsync(
-            new MatchActionCreateDto(matchAction, (float)DurationSinceBegin().TotalSeconds, user, _match));
-            
+            new MatchAction() {
+                ActionType = matchAction,
+                TimeAfterMatchBeginSeconds = (float)DurationSinceBegin().TotalSeconds,
+                Player=user,
+                Match=_match,
+
+            });
+
         Console.WriteLine($"ADDED ACTION: {user.DisplayName} - {matchAction.ToString()}");
     }
 
@@ -140,18 +146,16 @@ else
         if (_inputModel.IsValid())
         {
             _players = (await _userService.GetAllUsersInRole(Roles.TeamPlayer)).OrderBy(player => !player.IsActivePlayer).ToList();
-            _match = new Match
-            {
-                Name = _inputModel.Name,
-                Date = _inputModel.MatchDate.Value + _inputModel.MatchTime.Value,
-                Players = _players
-            };
 
-            await _matchService.CreateMatchAsync(new MatchCreateDto(_inputModel.Name, 
-                _inputModel.MatchDate.Value + _inputModel.MatchTime.Value,null, _players));
-            _stopwatch = new Stopwatch();
-            _stopwatch.Start();
-            _isMatchRunning = true;
+
+            var matchDto = new MatchCreateDto(_inputModel.Name, _inputModel.MatchDate.Value + _inputModel.MatchTime.Value, _players.Select(p => p.Id).ToList(), []);
+            _match = await _matchService.CreateMatchAsync(matchDto);
+            if (_match != null)
+            {
+                _stopwatch = new Stopwatch();
+                _stopwatch.Start();
+                _isMatchRunning = true;
+            }
         }
         else
         {

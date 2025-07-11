@@ -8,7 +8,8 @@
 
 <MudExpansionPanel Text="Users" Style="border: 3px solid  paleturquoise;">
 <MudContainer Style="background-color:paleturquoise;padding:5px">
-    @if(_users != null){
+    @if(_users != null)
+    {
         @foreach (var applicationUser in _users)
         {
             <MudExpansionPanel Text=@($"{applicationUser.DisplayName} - {applicationUser.Email}")>
@@ -39,7 +40,8 @@
 </MudExpansionPanel>
 <MudExpansionPanel Text="Matches" Style="border: 3px solid  palegoldenrod;">
 <MudContainer Style="background-color:palegoldenrod;padding: 5px">
-    @if(_matches != null){
+    @if(_matches != null)
+    {
         @foreach (var match in _matches)
         {
             <MudExpansionPanel Text=@($"{match.Name} - {match.Date:dd/MM/yyyy}")>
@@ -70,49 +72,49 @@
 </MudExpansionPanel>
 <MudExpansionPanel Text="Match Actions" Style="border: 3px solid  palevioletred;">
 <MudContainer Style="background-color: palevioletred; padding:5px">
-    
-    <MudTable T="@MatchAction" Items="_matchActions" Style="margin: 1px">
-        <HeaderContent>
-            <MudTh>
-                ID
-            </MudTh>
-            <MudTh>
-                Action Type
-            </MudTh>
-            <MudTh>
-                Player
-            </MudTh>
-            <MudTh>
-                Match
-            </MudTh>
-            <MudTh>
-                Time
-            </MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>
-                @context.Id
-            </MudTd>
-            <MudTd>
-                @context.ActionType.ToString()
-            </MudTd>
-            <MudTd>
-                @(context.Player?.DisplayName ?? "NULL")
-            </MudTd>
-            <MudTd>
-                @(context.Match?.Name ?? "NULL")
-            </MudTd>
-            <MudTd>
-                @context.TimeAfterMatchBeginSeconds
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
- 
+   @if (_matchActions != null)
+   {
+       <MudTable T="@MatchAction" Items="_matchActions" Style="margin: 1px">
+           <HeaderContent>
+               <MudTh>
+                   ID
+               </MudTh>
+               <MudTh>
+                   Action Type
+               </MudTh>
+               <MudTh>
+                   Player
+               </MudTh>
+               <MudTh>
+                   Match
+               </MudTh>
+               <MudTh>
+                   Time
+               </MudTh>
+           </HeaderContent>
+           <RowTemplate>
+               <MudTd>
+                   @context.Id
+               </MudTd>
+               <MudTd>
+                   @context.ActionType.ToString()
+               </MudTd>
+               <MudTd>
+                   @(context.Player?.DisplayName ?? "NULL")
+               </MudTd>
+               <MudTd>
+                   @(context.Match?.Name ?? "NULL")
+               </MudTd>
+               <MudTd>
+                   @context.TimeAfterMatchBeginSeconds
+               </MudTd>
+           </RowTemplate>
+       </MudTable>
+   }
 </MudContainer>
 </MudExpansionPanel>
 @code {
     [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
-    [Inject] private RoleManager<IdentityRole> _roleManager { get; set; }
     [Inject] private IDbContextFactory<ApplicationDbContext> _dbContextFactory { get; set; }
 
     private List<ApplicationUser> _users;
@@ -124,6 +126,7 @@
             .Include(user => user.MatchActions)
             .Include(user => user.MatchesPlayed)
             .ToListAsync();
+        
         await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
         {
             _matches = await dbContext.Matches

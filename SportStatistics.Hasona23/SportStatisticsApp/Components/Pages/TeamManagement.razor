@@ -2,11 +2,13 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using SportStatisticsApp.Components.Dialogs
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
+@using SportStatisticsApp.Services.Users
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 @rendermode InteractiveServer
-
+<MudDialogProvider />
 <h3>TeamManagement</h3>
 <MudDataGrid Items="_players" Filterable="false"  SortMode="@SortMode.None" Groupable="false">
     <Columns>
@@ -15,10 +17,14 @@
         <PropertyColumn Property="x => x.Email" Title="Email"/>
 
         <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-center" Title="Actions">
             <CellTemplate>
                 <MudStack Row>
                     <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await RemoveFromTeam(@context.Item))" Color="@Color.Primary">Kick from Team</MudButton>
+                    <MudButton OnClick="@(async ()=>await ChangePlayerAvailability(context.Item))">
+                        @(context.Item.IsActivePlayer ? "Disable" : $"Enable-{context.Item.NotActiveReason}")
+                    </MudButton>
+                
                     </MudStack>
             </CellTemplate>
         </TemplateColumn>
@@ -31,7 +37,7 @@
         <PropertyColumn Property="x => x.DisplayName" Title="Name"/>
         <PropertyColumn Property="x => x.Email" Title="Email" />
         <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end" Title="Actions">
             <CellTemplate>
                 <MudStack Row>
                     <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await AddUserToTeam(@context.Item))" Color="@Color.Primary">Add To Team</MudButton>
@@ -44,54 +50,108 @@
 
 @code {
 
-    private async Task<string> GetUserRoles(ApplicationUser user)
-    {
-        return string.Join('/',await _userManager.GetRolesAsync(user));
-    }
-    private async Task DeleteUser(ApplicationUser user)
-    {
-        await _userManager.DeleteAsync(user);
-        await GetUsers();
-    }
-
-    private async Task RemoveFromTeam(ApplicationUser user)
-    {
-        await _userManager.AddToRoleAsync(user,Roles.NormalUser);
-        await _userManager.RemoveFromRoleAsync(user,Roles.Coach);
-        await _userManager.RemoveFromRoleAsync(user,Roles.TeamPlayer);
-        await GetUsers();
-    }
-    private async Task AddUserToTeam(ApplicationUser user)
-    {
-        await _userManager.AddToRoleAsync(user,Roles.TeamPlayer);
-        await _userManager.RemoveFromRoleAsync(user,Roles.Coach);
-        await _userManager.RemoveFromRoleAsync(user,Roles.NormalUser);
-        await GetUsers();
-        
-    }
-    [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
+    [Inject] private IUserService _userService { get; set; }
+    [Inject] private IDialogService _dialogService { get; set; }
     private List<ApplicationUser> _normalUser;
     private List<ApplicationUser> _players;
+    
     protected override async Task OnInitializedAsync()
     {
         
         await GetUsers();
     }
+    
+    private async Task DeleteUser(ApplicationUser user)
+    {
+        await _userService.UserManager.DeleteAsync(user);
+        await GetUsers();
+    }
 
+    private async Task RemoveFromTeam(ApplicationUser user)
+    {
+        await _userService.UserManager.AddToRoleAsync(user,Roles.NormalUser);
+        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.Coach);
+        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.TeamPlayer);
+        await GetUsers();
+    }
+    private async Task AddUserToTeam(ApplicationUser user)
+    {
+        await _userService.UserManager.AddToRoleAsync(user,Roles.TeamPlayer);
+        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.Coach);
+        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.NormalUser);
+        await GetUsers();
+        
+    }
+    private async Task<bool> OpenEnablePlayerDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await _dialogService.ShowAsync<EnablePlayerDialog>("Enable player", options);
+
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+        {
+            return true;
+        }
+
+        return false;
+    }
+    private async Task<string> OpenDisablePlayerDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await _dialogService.ShowAsync<DisablePlayerDialog>("Disable player", options);
+
+        var result = await dialog.Result;
+        if (result is not null && result.Canceled == false && (string?)(result.Data) != null && !string.IsNullOrEmpty((string)result.Data))
+        {
+            return (string)result.Data;
+        }
+
+        return string.Empty;
+    }
+    private async Task ChangePlayerAvailability(ApplicationUser player)
+    {
+        var user = await _userService.GetUserById(player.Id);
+        if (user != null)
+        {
+            if (!user.IsActivePlayer)
+            {
+                if (await OpenEnablePlayerDialog())
+                {
+                    await _userService.EnableUser(user.Id);
+                }
+            }
+            else if (user.IsActivePlayer)
+            {
+                string reason = await OpenDisablePlayerDialog();
+                if (!string.IsNullOrEmpty(reason))
+                {
+                    await _userService.DisableUser(user.Id, reason);
+                }
+            }
+            
+        }
+        else
+        {
+            throw new Exception("USER NOT FOUND");
+        }
+    }
+    
     private async Task GetUsers()
     {
         _normalUser = new List<ApplicationUser>();
         _normalUser.EnsureCapacity(32);
         _players = new List<ApplicationUser>();
         _players.EnsureCapacity(32);
-        foreach (var user in _userManager.Users.Include(x => x.MatchesPlayed))
+        foreach (var user in _userService.UserManager.Users.Include(x => x.MatchesPlayed))
         {
-            if (await _userManager.IsInRoleAsync(user, Roles.TeamPlayer))
+            if (await _userService.UserManager.IsInRoleAsync(user, Roles.TeamPlayer))
             {
                 _players.Add(user);
             }
 
-            if (await _userManager.IsInRoleAsync(user, Roles.NormalUser))
+            if (await _userService.UserManager.IsInRoleAsync(user, Roles.NormalUser))
             {
                 _normalUser.Add(user);
             }

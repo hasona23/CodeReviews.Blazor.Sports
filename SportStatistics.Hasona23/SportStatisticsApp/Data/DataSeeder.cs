@@ -80,6 +80,8 @@ public static class DataSeeder
             user.DisplayName = $"Player_{i}";
             user.Email = $"abc12{i}@example.com";
             user.UserName = $"abc12{i}@example.com";
+            if (i < 2)
+                user.IsActivePlayer = false;
             var result = userManager.CreateAsync(user, "Password123!").Result;
             if (!result.Succeeded)
             {

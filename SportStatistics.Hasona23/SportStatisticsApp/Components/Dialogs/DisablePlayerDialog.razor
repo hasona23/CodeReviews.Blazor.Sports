@@ -1,0 +1,27 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="Reason" Label="Reason for disabling" Required MaxLength="64"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    
+    public string Reason { get; set; } = string.Empty;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private void Submit()
+    {
+        if (!string.IsNullOrEmpty(Reason))
+        {
+            MudDialog.Close(DialogResult.Ok(Reason));
+            
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,71 +1,163 @@
 ﻿@page "/matchMaking"
+@using System.ComponentModel.DataAnnotations
+@using System.Diagnostics
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
+@using SportStatisticsApp.Models.Dto
+@using SportStatisticsApp.Services.MatchActions
+@using SportStatisticsApp.Services.Matches
+@using SportStatisticsApp.Services.Users
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
-
+<MudPopoverProvider/>
 
 @if (_match == null)
 {
-    
+    if (_inputModel != null)
+    {
+        <MudTextField Label="Match Name" @bind-Value="_inputModel.Name" For="() => _inputModel.Name"
+                      Required></MudTextField>
+        <MudDatePicker Label="Match Date" @bind-Date="_inputModel.MatchDate" Clearable="false" Required></MudDatePicker>
+        <MudTimePicker Label="Match Time" @bind-Time="_inputModel.MatchTime" Clearable="false" Required></MudTimePicker>
+        <MudButton OnClick="SubmitMatchData">Submit</MudButton>
+    }
 }
 else
 {
-    <MudText Style="align-self: center;justify-self: center">@_match.Name</MudText>
+    <MudText Style="align-self: center;justify-self: center" Align="Align.Center" Typo="Typo.h3">@_match.Name</MudText>
+    <MudText Style="align-self: center;justify-self: center" Align="Align.Center"
+             Typo="Typo.h5">@(DurationSinceBegin().Minutes.ToString("00")) : @(DurationSinceBegin().Seconds.ToString("00"))</MudText>
+    <MudButtonGroup>
+        <MudButton
+            OnClick="@(_isMatchRunning ? PauseMatch : ContinueMatch)">@(_isMatchRunning ? "Pause" : "Continue")</MudButton>
+        <MudButton OnClick="EndMatch">End Match</MudButton>
+    </MudButtonGroup>
+
     <MudContainer Style="display: grid;grid-template-columns: repeat(3,33%);grid-gap: 2px">
-       
-        @if (_users != null)
+
+        @if (_players != null)
         {
-            @foreach (var user in _users)
+            @foreach (var user in _players)
             {
-                <MudCard >
+                <MudCard disabled="@(!user.IsActivePlayer)">
                     <MudCardHeader Style="display:flex;align-items: center;justify-content: center">
                         <MudText>
-                            @user.DisplayName
+                            @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : "IN-ACTIVE")
                         </MudText>
                     </MudCardHeader>
 
                     <MudCardContent Style="display: flex;align-items: center;justify-content: center">
-                        <span>
+                        <MudButtonGroup disabled="@(!user.IsActivePlayer)">
                             @foreach (var matchActionType in Enum.GetValues<MatchActionType>())
                             {
-                                <MudButton OnClick="async ()=> await AddAction(user,matchActionType)">@matchActionType.ToString()</MudButton>
+                                <MudButton Disabled="!user.IsActivePlayer"
+                                           OnClick="async ()=> await AddAction(user,matchActionType)">@matchActionType.ToString()</MudButton>
                             }
-                        </span>
+                        </MudButtonGroup>
                     </MudCardContent>
 
                 </MudCard>
             }
         }
     </MudContainer>
-    
 }
 
 @code {
-    [Inject] private ApplicationDbContext _dbContext { get; set; }
-    [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
-    private List<ApplicationUser> _users { get; set; }
+    [Inject] private IUserService _userService { get; set; }
+    [Inject] private IMatchService _matchService { get; set; }
+    [Inject] private IMatchActionService _matchActionService { get; set; }
+    private MatchInputModel _inputModel = new MatchInputModel();
+    private List<ApplicationUser> _players { get; set; }
     private Match _match = null;
+    private Stopwatch _stopwatch;
+    private bool _isMatchRunning;
+
+    private Timer _timer;
+
     protected override async Task OnInitializedAsync()
     {
-        var users = await _userManager.GetUsersInRoleAsync(Roles.TeamPlayer);
-        users = users.ToList().AsQueryable().Include(user => user.MatchActions).Include(user=>user.MatchesPlayed).ToList();
-        _users = users.ToList();
-        _match = _dbContext.Matches.First();
+        base.OnInitialized();
+        _timer = new Timer(async obj => await InvokeAsync(StateHasChanged), null, 0, 1000);
     }
 
-    private async Task AddAction(ApplicationUser user,MatchActionType matchAction)
+    private TimeSpan DurationSinceBegin()
     {
-        await _dbContext.MatchActions.AddAsync(new MatchAction()
-        {
-            ActionType = matchAction,
-            Match = _match,
-            Player = user,
-        });
-        await _dbContext.SaveChangesAsync();
+        return _stopwatch.Elapsed;
+    }
+
+    private async Task AddAction(ApplicationUser user, MatchActionType matchAction)
+    {
+        if (!_isMatchRunning)
+            return;
+        if (!user.IsActivePlayer)
+            return;
+        await _matchActionService.CreateMatchActionAsync(
+            new MatchActionCreateDto(matchAction, (float)DurationSinceBegin().TotalSeconds, user, _match));
+            
         Console.WriteLine($"ADDED ACTION: {user.DisplayName} - {matchAction.ToString()}");
     }
+
+    private void PauseMatch()
+    {
+        _isMatchRunning = false;
+        _stopwatch.Stop();
+    }
+
+    private void EndMatch()
+    {
+        PauseMatch();
+        _match = null;
+        _inputModel = new MatchInputModel();
+    }
+
+    private void ContinueMatch()
+    {
+        _isMatchRunning = true;
+        _stopwatch.Start();
+    }
+
+    private class MatchInputModel
+    {
+        [StringLength(64, MinimumLength = 3)]
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        public TimeSpan? MatchTime { get; set; } = new TimeSpan(DateTime.Now.Hour, DateTime.Now.Minute, 0);
+        public DateTime? MatchDate { get; set; } = DateTime.Today;
+
+        public bool IsValid()
+        {
+            return !string.IsNullOrEmpty(Name) && Name.Length is >= 3 and <= 64
+                                               && MatchDate.HasValue && MatchTime.HasValue;
+        }
+    }
+
+    private async Task SubmitMatchData()
+    {
+        if (_inputModel.IsValid())
+        {
+            _players = (await _userService.GetAllUsersInRole(Roles.TeamPlayer)).OrderBy(player => !player.IsActivePlayer).ToList();
+            _match = new Match
+            {
+                Name = _inputModel.Name,
+                Date = _inputModel.MatchDate.Value + _inputModel.MatchTime.Value,
+                Players = _players
+            };
+
+            await _matchService.CreateMatchAsync(new MatchCreateDto(_inputModel.Name, 
+                _inputModel.MatchDate.Value + _inputModel.MatchTime.Value,null, _players));
+            _stopwatch = new Stopwatch();
+            _stopwatch.Start();
+            _isMatchRunning = true;
+        }
+        else
+        {
+            _match = null;
+        }
+    }
+
 }
+

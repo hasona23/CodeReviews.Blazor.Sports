@@ -57,7 +57,7 @@
                         @foreach (var action in match.Actions)
                         {
                             <MudTreeViewItem Text=@($"{action.Id} - {action.ActionType.ToString()}")>
-                                <MudTreeViewItem Text=@($"Email: {action.TimeAfterMatchBeginSeconds:00.00}")/>
+                                <MudTreeViewItem Text=@($"Time: {action.TimeAfterMatchBeginSeconds:00.00}")/>
                             
                             </MudTreeViewItem>
                         }
@@ -113,7 +113,7 @@
 @code {
     [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
     [Inject] private RoleManager<IdentityRole> _roleManager { get; set; }
-    [Inject] private ApplicationDbContext _context { get; set; }
+    [Inject] private IDbContextFactory<ApplicationDbContext> _dbContextFactory { get; set; }
 
     private List<ApplicationUser> _users;
     private List<Match> _matches;
@@ -124,16 +124,18 @@
             .Include(user => user.MatchActions)
             .Include(user => user.MatchesPlayed)
             .ToListAsync();
-        _matches = await _context.Matches
-            .Include(match => match.Players)
-            .Include(match => match.Actions)
-            .ToListAsync();
-        
-        _matchActions = await _context.MatchActions
-            .Include(ma => ma.Player)
-            .Include(ma => ma.Match).ToListAsync();
-        
-       
+        await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
+        {
+            _matches = await dbContext.Matches
+                .Include(match => match.Players)
+                .Include(match => match.Actions)
+                .ToListAsync();
+
+            _matchActions = await dbContext.MatchActions
+                .Include(ma => ma.Player)
+                .Include(ma => ma.Match).ToListAsync();
+        }
+
     }
 
 }

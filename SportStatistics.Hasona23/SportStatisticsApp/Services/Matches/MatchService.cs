@@ -72,7 +72,7 @@ public class MatchService : IMatchService
                 if (matchFound == null) return false;
                 matchFound.Name = match.Name;
                 matchFound.Date = match.Date;
-
+                matchFound.MatchResult = match.MatchResult;
                 await db.SaveChangesAsync();
                 return true;
             }

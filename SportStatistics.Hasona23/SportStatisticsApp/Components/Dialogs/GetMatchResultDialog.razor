@@ -1,0 +1,35 @@
+﻿@using SportStatisticsApp.Models
+<MudDialog>
+    <DialogContent>
+    
+        <MudSelect T="MatchResult" bind-Value="MatchResult" For="@(() => MatchResult)">
+            @foreach (MatchResult matchResult in Enum.GetValues<MatchResult>())
+            {
+                @if (matchResult != MatchResult.UnSet)
+                {
+                    <MudSelectItem T="MatchResult" Value="matchResult">
+                        @matchResult.ToString()
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    
+    public MatchResult MatchResult { get; set; } = MatchResult.Win;
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private void Submit()
+    {   
+        MudDialog.Close(DialogResult.Ok(MatchResult));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

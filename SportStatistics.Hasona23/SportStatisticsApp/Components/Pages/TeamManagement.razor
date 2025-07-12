@@ -8,6 +8,7 @@
 @using SportStatisticsApp.Services.Users
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 @rendermode InteractiveServer
+
 <MudDialogProvider />
 <h3>TeamManagement</h3>
 <MudDataGrid Items="_players" Filterable="false"  SortMode="@SortMode.None" Groupable="false">

@@ -24,13 +24,14 @@ public static class DataSeeder
     private static void SeedMatches(ApplicationDbContext context)
     {
        
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 6; i++)
         {
             var match = new Match()
             {
                 Date = GetRandomData(),
                 Players = context.Users.Where(usr => usr.DisplayName.Contains("Player")).ToList(),
-                Name = $"Match_{i}"
+                Name = $"Match_{i}",
+                MatchResult = GetRandomMatchResult(),
             };
             context.Matches.Add(match);
         }
@@ -123,5 +124,11 @@ public static class DataSeeder
     {
         
         return new DateTime(_rand.Next(2010,2026),_rand.Next(1,13),_rand.Next(1,28));
+    }
+
+    private static MatchResult GetRandomMatchResult()
+    {
+        var values = Enum.GetValues<MatchResult>();
+        return values[_rand.Next(0, values.Length-1)];
     }
 }

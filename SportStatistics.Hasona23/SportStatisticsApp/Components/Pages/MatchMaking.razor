@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using SportStatisticsApp.Components.Dialogs
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
 @using SportStatisticsApp.Models.Dtos
@@ -13,6 +14,7 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 <MudPopoverProvider/>
+<MudDialogProvider />
 
 @if (_match == null)
 {
@@ -69,6 +71,7 @@ else
     [Inject] private IUserService _userService { get; set; }
     [Inject] private IMatchService _matchService { get; set; }
     [Inject] private IMatchActionService _matchActionService { get; set; }
+    [Inject] private IDialogService _dialogService { get; set; }
     private MatchInputModel _inputModel = new MatchInputModel();
     private List<ApplicationUser> _players { get; set; }
     private Match _match = null;
@@ -112,11 +115,39 @@ else
         _stopwatch.Stop();
     }
 
-    private void EndMatch()
+    private async Task<MatchResult?> OpenGetMatchResultDialog()
+    {
+        MatchResult? _matchResult = null;
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var dialog = await _dialogService.ShowAsync<GetMatchResultDialog>("Match Result", options);
+        
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+        {
+            _matchResult = (MatchResult?)result.Data;
+        }
+
+        
+
+        return _matchResult;
+    }
+
+    private async Task EndMatch()
     {
         PauseMatch();
-        _match = null;
-        _inputModel = new MatchInputModel();
+        var matchResult = await OpenGetMatchResultDialog();
+        if (matchResult.HasValue)
+        {
+            _match.MatchResult = matchResult.Value;
+            await _matchService.UpdateMatchAsync(_match);
+            _match = null;
+            _inputModel = new MatchInputModel();
+        }
+        else
+        {
+            ContinueMatch();
+        }
     }
 
     private void ContinueMatch()
@@ -148,7 +179,9 @@ else
             _players = (await _userService.GetAllUsersInRole(Roles.TeamPlayer)).OrderBy(player => !player.IsActivePlayer).ToList();
 
 
-            var matchDto = new MatchCreateDto(_inputModel.Name, _inputModel.MatchDate.Value + _inputModel.MatchTime.Value, _players.Select(p => p.Id).ToList(), []);
+            var matchDto = new MatchCreateDto(_inputModel.Name,MatchResult.UnSet, 
+                _inputModel.MatchDate.Value + _inputModel.MatchTime.Value, 
+                _players.Select(p => p.Id).ToList(), []);
             _match = await _matchService.CreateMatchAsync(matchDto);
             if (_match != null)
             {

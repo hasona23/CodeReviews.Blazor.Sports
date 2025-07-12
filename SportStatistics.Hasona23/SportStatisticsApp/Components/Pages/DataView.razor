@@ -1,144 +1,48 @@
 ﻿@page "/data"
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
-@rendermode InteractiveServer
 
-<MudExpansionPanel Text="Users" Style="border: 3px solid  paleturquoise;">
-<MudContainer Style="background-color:paleturquoise;padding:5px">
-    @if(_users != null)
-    {
-        @foreach (var applicationUser in _users)
-        {
-            <MudExpansionPanel Text=@($"{applicationUser.DisplayName} - {applicationUser.Email}")>
-                <MudTreeView T="string" ReadOnly>
-                    <MudTreeViewItem Text=@($"Matches - {applicationUser.MatchesPlayed.Count}")>
-                        @foreach (var match in applicationUser.MatchesPlayed)
-                        {
-                            <MudTreeViewItem Text=@($"{match.Id} - {match.Name}")>
-                                <MudTreeViewItem Text=@($"Date: {match.Date:dd-MM-yyyy}")/>
-                                <MudTreeViewItem Text=@($"Players: {match.Players.Count}")/>
-                                <MudTreeViewItem Text=@($"Actions: {match.Actions.Count}")/>
-                            </MudTreeViewItem>
-                        }
-                    </MudTreeViewItem>
-                    <MudTreeViewItem Text=@($"Action - {applicationUser.MatchActions.Count}")>
-                        @foreach (var action in applicationUser.MatchActions)
-                        {
-                            <MudTreeViewItem Text=@($"{action.Id} - {action.ActionType.ToString()}")>
-                                <MudTreeViewItem Text=@($"Date: {action.TimeAfterMatchBeginSeconds:00.00}")/>
-                            </MudTreeViewItem>
-                        }
-                    </MudTreeViewItem>
-                </MudTreeView>
-            </MudExpansionPanel>
-        }
-    }
-</MudContainer>
-</MudExpansionPanel>
-<MudExpansionPanel Text="Matches" Style="border: 3px solid  palegoldenrod;">
-<MudContainer Style="background-color:palegoldenrod;padding: 5px">
-    @if(_matches != null)
-    {
-        @foreach (var match in _matches)
-        {
-            <MudExpansionPanel Text=@($"{match.Name} - {match.Date:dd/MM/yyyy}")>
-                <MudTreeView T="string" ReadOnly>
-                    <MudTreeViewItem Text=@($"Players - {match.Players.Count}")>
-                        @foreach (var user in match.Players)
-                        {
-                            <MudTreeViewItem Text=@($"{user.DisplayName}")>
-                                <MudTreeViewItem Text=@($"Email: {user.Email}")/>
-                            
-                            </MudTreeViewItem>
-                        }
-                    </MudTreeViewItem>
-                    <MudTreeViewItem Text=@($"Action - {match.Actions.Count}")>
-                        @foreach (var action in match.Actions)
-                        {
-                            <MudTreeViewItem Text=@($"{action.Id} - {action.ActionType.ToString()}")>
-                                <MudTreeViewItem Text=@($"Time: {action.TimeAfterMatchBeginSeconds:00.00}")/>
-                            
-                            </MudTreeViewItem>
-                        }
-                    </MudTreeViewItem>
-                </MudTreeView>
-            </MudExpansionPanel>
-        }
-    }
-</MudContainer>
-</MudExpansionPanel>
-<MudExpansionPanel Text="Match Actions" Style="border: 3px solid  palevioletred;">
-<MudContainer Style="background-color: palevioletred; padding:5px">
-   @if (_matchActions != null)
-   {
-       <MudTable T="@MatchAction" Items="_matchActions" Style="margin: 1px">
-           <HeaderContent>
-               <MudTh>
-                   ID
-               </MudTh>
-               <MudTh>
-                   Action Type
-               </MudTh>
-               <MudTh>
-                   Player
-               </MudTh>
-               <MudTh>
-                   Match
-               </MudTh>
-               <MudTh>
-                   Time
-               </MudTh>
-           </HeaderContent>
-           <RowTemplate>
-               <MudTd>
-                   @context.Id
-               </MudTd>
-               <MudTd>
-                   @context.ActionType.ToString()
-               </MudTd>
-               <MudTd>
-                   @(context.Player?.DisplayName ?? "NULL")
-               </MudTd>
-               <MudTd>
-                   @(context.Match?.Name ?? "NULL")
-               </MudTd>
-               <MudTd>
-                   @context.TimeAfterMatchBeginSeconds
-               </MudTd>
-           </RowTemplate>
-       </MudTable>
-   }
-</MudContainer>
-</MudExpansionPanel>
+
+<MudText>Hello Users @(_users?.Count??-1)</MudText>
+<MudText>Hello Matches @(_matches?.Count??-1)</MudText>
+<MudText>Hello Actions@(_matchActions?.Count??-1)</MudText>
 @code {
     [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
     [Inject] private IDbContextFactory<ApplicationDbContext> _dbContextFactory { get; set; }
-
-    private List<ApplicationUser> _users;
-    private List<Match> _matches;
+    [Inject] private ILogger<DataView> _logger { get; set; }
+    private List<ApplicationUser> _users ;
+    private List<Match> _matches ;
     private List<MatchAction> _matchActions;
     protected override async Task OnInitializedAsync()
     {
-        _users = await _userManager.Users
-            .Include(user => user.MatchActions)
-            .Include(user => user.MatchesPlayed)
-            .ToListAsync();
-        
-        await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
+        try
         {
-            _matches = await dbContext.Matches
-                .Include(match => match.Players)
-                .Include(match => match.Actions)
+            _users = await _userManager.Users
+                .Include(user => user.MatchActions)
+                .Include(user => user.MatchesPlayed)
                 .ToListAsync();
 
-            _matchActions = await dbContext.MatchActions
-                .Include(ma => ma.Player)
-                .Include(ma => ma.Match).ToListAsync();
+            await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
+            {
+                _matches = await dbContext.Matches
+                    .Include(match => match.Players)
+                    .Include(match => match.Actions)
+                    .ToListAsync();
+
+                _matchActions = await dbContext.MatchActions
+                    .Include(ma => ma.Player)
+                    .Include(ma => ma.Match)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical($"ERROR IN DATA VIEW {ex}");
         }
 
     }
+    
 
 }

@@ -9,45 +9,93 @@
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 @rendermode InteractiveServer
 
-<MudDialogProvider />
-<h3>TeamManagement</h3>
-<MudDataGrid Items="_players" Filterable="false"  SortMode="@SortMode.None" Groupable="false">
-    <Columns>
-        <PropertyColumn Property="x => x.Id" Title="Id"  />
-        <PropertyColumn Property="x => x.DisplayName" Title="Name"/>
-        <PropertyColumn Property="x => x.Email" Title="Email"/>
+<MudDialogProvider/>
+<MudText Typo="Typo.h3" Style="display: flex;align-items: start;justify-content: center;margin-bottom: 10px">Team Management</MudText>
+<MudExpansionPanels MultiExpansion="true">
+    <MudExpansionPanel Text="Players">
 
-        <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
-        <TemplateColumn CellClass="d-flex justify-center" Title="Actions">
-            <CellTemplate>
-                <MudStack Row>
-                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await RemoveFromTeam(@context.Item))" Color="@Color.Primary">Kick from Team</MudButton>
-                    <MudButton OnClick="@(async ()=>await ChangePlayerAvailability(context.Item))">
-                        @(context.Item.IsActivePlayer ? "Disable" : $"Enable-{context.Item.NotActiveReason}")
-                    </MudButton>
-                
-                    </MudStack>
-            </CellTemplate>
-        </TemplateColumn>
-       
-    </Columns>
-</MudDataGrid>
-<MudDataGrid Items="@_normalUser" Filterable="false" SortMode="@SortMode.None" Groupable="false">
-    <Columns>
-        <PropertyColumn Property="x => x.Id" Title="Id"  />
-        <PropertyColumn Property="x => x.DisplayName" Title="Name"/>
-        <PropertyColumn Property="x => x.Email" Title="Email" />
-        <PropertyColumn Property="x => x.MatchesPlayed.Count" Title="Matches Played"/>
-        <TemplateColumn CellClass="d-flex justify-end" Title="Actions">
-            <CellTemplate>
-                <MudStack Row>
-                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await AddUserToTeam(@context.Item))" Color="@Color.Primary">Add To Team</MudButton>
-                    <MudButton Size="@Size.Small" Variant="@Variant.Filled" OnClick="@(async () => await DeleteUser(@context.Item))" Color="@Color.Primary">Delete</MudButton>
-                </MudStack>
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-</MudDataGrid>
+        @if (_players != null)
+        {
+            <MudContainer Style="display: flex;flex-wrap: wrap;align-items: center;justify-content: center">
+                @foreach (ApplicationUser player in _players)
+                {
+                    <MudCard Style="min-width: 32%;margin: 2px;flex-grow: 1" Outlined="true">
+                        <MudCardHeader Style="display: flex;align-items: center;flex-direction: column">
+                            <MudText Color="Color.Primary" Typo="Typo.h6">@player.DisplayName</MudText>
+                            <MudText Color="Color.Default" Typo="Typo.subtitle1">@player.Email</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText>
+                                @(player.IsActivePlayer ? "Active" : $"Disabled({player.NotActiveReason})")
+                            </MudText>
+                            <MudText>Matches played
+                                : @(player.MatchesPlayed != null ? $"{player.MatchesPlayed.Count}" : "NULL")</MudText>
+                            <MudCardActions Style="display: flex;align-items: center;justify-content: center">
+
+
+                                
+
+                                <MudButton OnClick="@(async () => await ChangePlayerAvailability(player))"
+                                           Size="@Size.Small" Variant="@Variant.Filled"
+                                           Color="@Color.Primary">
+                                    @(player.IsActivePlayer ? "Disable" : $"Enable")
+                                </MudButton>
+
+                                <MudSpacer/>
+
+                                <MudButton
+                                    Size="@Size.Small" Variant="@Variant.Filled"
+                                    Color="@Color.Secondary">
+                                    Details(TODO)
+                                </MudButton>
+                                <MudSpacer/>
+                                <MudButton Size="@Size.Small" Variant="@Variant.Filled"
+                                           OnClick="@(async () => await RemoveFromTeam(@player))"
+                                           Color="@Color.Error">
+                                    Kick from Team
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCardContent>
+
+                    </MudCard>
+                }
+            </MudContainer>
+        }
+    </MudExpansionPanel>
+
+    <MudExpansionPanel Text="Pending Requests">
+        @if (_normalUser != null)
+        {
+            <MudContainer Style="display: flex;flex-wrap: wrap;align-items: center;justify-content: center">
+                @foreach (ApplicationUser pendingUser in _normalUser)
+                {
+                    <MudCard Style="flex-grow:1;min-width: 32%;margin: 2px" Outlined="true">
+                        <MudCardHeader Style="display: flex;flex-direction: column;align-items: center">
+                            <MudText Color="Color.Primary" Typo="Typo.h6">@pendingUser.DisplayName</MudText>
+
+                            <MudText Color="Color.Default" Typo="Typo.subtitle1">@pendingUser.Email</MudText>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudCardActions Style="display: flex;align-items: center;justify-content: center">
+                                <MudButton Size="Size.Small" Variant="@Variant.Filled"
+                                           OnClick="@(async () => await AddUserToTeam(@pendingUser))"
+                                           Color="@Color.Primary">Add To Team
+                                </MudButton>
+                                <MudSpacer/>
+                                <MudButton Size="@Size.Small" Variant="@Variant.Filled"
+                                           OnClick="@(async () => await DeleteUser(@pendingUser))"
+                                           Color="@Color.Error">
+                                    Delete
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCardContent>
+                    </MudCard>
+                }
+            </MudContainer>
+        }
+
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 @code {
 
@@ -55,13 +103,12 @@
     [Inject] private IDialogService _dialogService { get; set; }
     private List<ApplicationUser> _normalUser;
     private List<ApplicationUser> _players;
-    
+
     protected override async Task OnInitializedAsync()
     {
-        
         await GetUsers();
     }
-    
+
     private async Task DeleteUser(ApplicationUser user)
     {
         await _userService.UserManager.DeleteAsync(user);
@@ -70,36 +117,35 @@
 
     private async Task RemoveFromTeam(ApplicationUser user)
     {
-        await _userService.UserManager.AddToRoleAsync(user,Roles.NormalUser);
-        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.Coach);
-        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.TeamPlayer);
+        await _userService.UserManager.AddToRoleAsync(user, Roles.NormalUser);
+        await _userService.UserManager.RemoveFromRoleAsync(user, Roles.Coach);
+        await _userService.UserManager.RemoveFromRoleAsync(user, Roles.TeamPlayer);
         await GetUsers();
     }
+
     private async Task AddUserToTeam(ApplicationUser user)
     {
-        await _userService.UserManager.AddToRoleAsync(user,Roles.TeamPlayer);
-        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.Coach);
-        await _userService.UserManager.RemoveFromRoleAsync(user,Roles.NormalUser);
+        await _userService.UserManager.AddToRoleAsync(user, Roles.TeamPlayer);
+        await _userService.UserManager.RemoveFromRoleAsync(user, Roles.Coach);
+        await _userService.UserManager.RemoveFromRoleAsync(user, Roles.NormalUser);
         await GetUsers();
-        
     }
+
     private async Task<bool> OpenEnablePlayerDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var result = await _dialogService.ShowMessageBox("Enable User",
+            "Are you sure you want to enable user", 
+            yesText: "Yes", cancelText: "Cancel");
 
-        var dialog = await _dialogService.ShowAsync<EnablePlayerDialog>("Enable player", options);
-
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            return true;
-        }
-
-        return false;
+        return result == true;
     }
+
     private async Task<string> OpenDisablePlayerDialog()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true
+        };
 
         var dialog = await _dialogService.ShowAsync<DisablePlayerDialog>("Disable player", options);
 
@@ -111,6 +157,7 @@
 
         return string.Empty;
     }
+
     private async Task ChangePlayerAvailability(ApplicationUser player)
     {
         var user = await _userService.GetUserById(player.Id);
@@ -131,14 +178,13 @@
                     await _userService.DisableUser(user.Id, reason);
                 }
             }
-            
         }
         else
         {
             throw new Exception("USER NOT FOUND");
         }
     }
-    
+
     private async Task GetUsers()
     {
         _normalUser = new List<ApplicationUser>();
@@ -158,8 +204,4 @@
             }
         }
     }
-   
-
-    
-
 }

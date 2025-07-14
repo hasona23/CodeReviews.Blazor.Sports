@@ -1,8 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
 @* Required *@
-
-<MudThemeProvider IsDarkMode="true" />
+<MudThemeProvider IsDarkMode="true" Theme="_mainTheme" />
 
 
 @* Needed for dialogs *@
@@ -11,24 +10,59 @@
 @* Needed for snackbars *@
 <MudSnackbarProvider />
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
+<MudLayout>
+    <!-- Top AppBar -->
+  
+    
+    <MudDrawer Open="true">
+        <NavMenu/>
+    </MudDrawer>
+
+    <!-- Main Content -->
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+<!--<div class="page">
+       
+    <div class="sidebar" style="border-right: #efe1ba 2px solid;">
+
+        <NavMenu/>
     </div>
 
     <main>
-       <!-- <div class="top-row px-4">
+    <div class="top-row px-4">
             <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
         </div>
-        -->
+        
         <article class="content px-4">
             @Body
         </article>
     </main>
-</div>
+    </div>
+    -->
 
 <MudContainer id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <MudLink href="." class="reload">Reload</MudLink>
     <span class="dismiss">🗙</span>
 </MudContainer>
+@code
+{
+    private MudTheme _mainTheme = new MudTheme()
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary =   PalleteColors.Primary,
+            Secondary = PalleteColors.Secondary,
+            Background = PalleteColors.Black,
+            Surface = PalleteColors.LightBlack,
+            DrawerBackground = PalleteColors.LightBlack,
+            
+            
+        }
+        
+    };
+}

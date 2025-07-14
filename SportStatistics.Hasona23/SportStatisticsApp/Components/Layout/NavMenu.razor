@@ -2,8 +2,67 @@
 @implements IDisposable
 
 @inject NavigationManager NavigationManager
-
-<div class="top-row ps-3 navbar navbar-dark">
+<MudNavMenu >
+    <MudText Typo="Typo.h5"  Class="px-4" Style="margin-bottom: 5px;margin-top:10px;color: white">Sport Statistics App</MudText>
+    
+            <MudNavLink Href="" Match="NavLinkMatch.All">
+                 Home
+            </MudNavLink>
+        
+            <MudNavLink Href="data">
+               Data View
+            </MudNavLink>
+ 
+        
+        <AuthorizeView>
+            <Authorized>
+                @if (@context.User.IsInRole(Roles.Coach))
+                {
+                   
+                        <MudNavLink Href="teamManagement">
+                            Team Management
+                        </MudNavLink>
+                 
+                        <MudNavLink Href="matchMaking">
+                            Make Match
+                        </MudNavLink>
+                 
+                }
+                @if (context.User.IsInRole(Roles.Coach) || context.User.IsInRole(Roles.TeamPlayer))
+                {
+                    <MudNavLink Href="matchesManagement">
+                        Matches Management
+                    </MudNavLink>
+                }
+                <MudText>
+                        @context.User.Identity?.Name
+                    </MudText>
+            
+                <div class="nav-item px-3">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken/>
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl"/>
+                        <MudButton ButtonType="ButtonType.Submit" Class="nav-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        </MudButton>
+                    </form>
+                </div>
+               
+            </Authorized>
+            <NotAuthorized>
+               
+                    <MudNavLink  Href="Account/Register">
+                        Register
+                    </MudNavLink>
+               
+                    <MudNavLink Href="Account/Login">
+                        Login
+                    </MudNavLink>
+            
+            </NotAuthorized>
+        </AuthorizeView>
+</MudNavMenu>
+<!--<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">SportStatisticsApp</a>
     </div>
@@ -71,15 +130,18 @@
         </AuthorizeView>
     </nav>
 </div>
-
+-->
 @code {
     private string? currentUrl;
+   
 
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
         NavigationManager.LocationChanged += OnLocationChanged;
     }
+
+    
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {

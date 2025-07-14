@@ -1,0 +1,43 @@
+﻿@using SportStatisticsApp.Models
+<MudDialog Style="min-width: 30%;min-height: 30%">
+    <DialogContent>
+        <MudTextField @bind-Value="Match.Name" Label="Match Name" Required MaxLength="64"></MudTextField>
+        <MudDatePicker @bind-Date="_matchDate" Label="Date">
+            
+        </MudDatePicker>
+        <MudTimePicker @bind-Time="_matchTime" Label="Time">
+            
+        </MudTimePicker>
+        </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">OK</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public Match Match { get; set; }
+    private DateTime? _matchDate { get; set; }
+    private TimeSpan? _matchTime { get; set; }
+    protected override void OnParametersSet()
+    {
+        _matchDate = Match.Date;
+        _matchTime = new TimeSpan(Match.Date.Hour,Match.Date.Minute,00);
+    }
+
+    private void Submit()
+    {
+        if (_matchDate.HasValue && _matchTime.HasValue)
+        {
+            Match.Date = new DateTime(_matchDate.Value.Year, _matchDate.Value.Month, _matchDate.Value.Day
+                , _matchTime.Value.Hours, _matchTime.Value.Minutes, 00);
+            MudDialog.Close(DialogResult.Ok(Match));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

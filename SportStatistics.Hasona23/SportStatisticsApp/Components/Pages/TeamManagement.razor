@@ -9,7 +9,11 @@
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 @rendermode InteractiveServer
 
+<MudPopoverProvider/>
 <MudDialogProvider/>
+<MudSnackbarProvider/>
+
+
 <MudText Typo="Typo.h3" Style="display: flex;align-items: start;justify-content: center;margin-bottom: 10px">Team Management</MudText>
 <MudExpansionPanels MultiExpansion="true">
     <MudExpansionPanel Text="Players">
@@ -114,6 +118,7 @@
     [Inject] private IUserService _userService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
     [Inject] private NavigationManager _navigationManager { get; set; }
+    [Inject] private ISnackbar _snackbar { get; set; }
     private List<ApplicationUser> _normalUser;
     private List<ApplicationUser> _players;
 
@@ -126,6 +131,7 @@
     {
         await _userService.UserManager.DeleteAsync(user);
         await GetUsers();
+        _snackbar.Add($"Deleted User:{user.DisplayName}",Severity.Success);
     }
 
     private async Task RemoveFromTeam(ApplicationUser user)
@@ -134,6 +140,7 @@
         await _userService.UserManager.RemoveFromRoleAsync(user, Roles.Coach);
         await _userService.UserManager.RemoveFromRoleAsync(user, Roles.TeamPlayer);
         await GetUsers();
+        _snackbar.Add($"Removed User:{user.DisplayName} from team",Severity.Success);
     }
 
     private async Task AddUserToTeam(ApplicationUser user)
@@ -142,6 +149,7 @@
         await _userService.UserManager.RemoveFromRoleAsync(user, Roles.Coach);
         await _userService.UserManager.RemoveFromRoleAsync(user, Roles.NormalUser);
         await GetUsers();
+        _snackbar.Add($"Added User:{user.DisplayName} to team",Severity.Success);
     }
 
     private async Task<bool> OpenEnablePlayerDialog()
@@ -149,7 +157,6 @@
         var result = await _dialogService.ShowMessageBox("Enable User",
             "Are you sure you want to enable user", 
             yesText: "Yes", cancelText: "Cancel");
-
         return result == true;
     }
 
@@ -181,6 +188,7 @@
                 if (await OpenEnablePlayerDialog())
                 {
                     await _userService.EnableUser(user.Id);
+                    _snackbar.Add($"Enabled User:{user.DisplayName}",Severity.Success);
                 }
             }
             else if (user.IsActivePlayer)
@@ -189,6 +197,11 @@
                 if (!string.IsNullOrEmpty(reason))
                 {
                     await _userService.DisableUser(user.Id, reason);
+                    _snackbar.Add($"Disabled User:{user.DisplayName} due to {reason}",Severity.Success);
+                }
+                else
+                {
+                    _snackbar.Add($"Reason for disabling {user.DisplayName} cannot be empty",Severity.Error);
                 }
             }
         }

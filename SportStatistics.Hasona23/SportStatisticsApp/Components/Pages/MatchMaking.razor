@@ -12,21 +12,25 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = $"{Roles.Coach}")]
 <MudPopoverProvider/>
-<MudDialogProvider />
+<MudDialogProvider/>
+<MudSnackbarProvider/>
 
 @if (_match == null)
 {
     if (_inputModel != null)
     {
-        
         <div style="display: grid;place-items: center">
-            
-            <MudTextField Style="min-width:80%;margin:40px" AdornmentIcon="@Icons.Material.Outlined.Edit" Adornment="Adornment.End" Placeholder="Name" @bind-Value="_inputModel.Name" For="() => _inputModel.Name" Required/>
-            <MudDatePicker Style="min-width:80%;margin:40px"  @bind-Date="_inputModel.MatchDate" Clearable="false" Required/>
-            <MudTimePicker Style="min-width:80%;margin:40px" @bind-Time="_inputModel.MatchTime" Clearable="false" Required/>
-            <MudButton Style="min-width:20%;margin:40px" Color="Color.Primary" OnClick="SubmitMatchData">Submit</MudButton>
+
+            <MudTextField Style="min-width:80%;margin:40px" AdornmentIcon="@Icons.Material.Outlined.Edit"
+                          Adornment="Adornment.End" Placeholder="Name" @bind-Value="_inputModel.Name"
+                          For="() => _inputModel.Name" Required/>
+            <MudDatePicker Style="min-width:80%;margin:40px" @bind-Date="_inputModel.MatchDate" Clearable="false"
+                           Required/>
+            <MudTimePicker Style="min-width:80%;margin:40px" @bind-Time="_inputModel.MatchTime" Clearable="false"
+                           Required/>
+            <MudButton Style="min-width:20%;margin:40px" Color="Color.Primary" OnClick="SubmitMatchData">Submit
+            </MudButton>
         </div>
-        
     }
 }
 else
@@ -34,20 +38,21 @@ else
     <MudText Style="align-self: center;justify-self: center" Align="Align.Center" Typo="Typo.h3">@_match.Name</MudText>
     <MudText Style="align-self: center;justify-self: center" Align="Align.Center"
              Typo="Typo.h5">@(DurationSinceBegin().Minutes.ToString("00")) : @(DurationSinceBegin().Seconds.ToString("00"))</MudText>
-    <MudButtonGroup Style="display: flex;align-items: center;justify-content: center;margin:10px" Variant="Variant.Outlined" OverrideStyles="false">
-        <MudIconButton 
+    <MudButtonGroup Style="display: flex;align-items: center;justify-content: center;margin:10px"
+                    Variant="Variant.Outlined" OverrideStyles="false">
+        <MudIconButton
             OnClick="@(_isMatchRunning ? PauseMatch : ContinueMatch)"
-            Color="@(_isMatchRunning?Color.Info:Color.Primary)"
+            Color="@(_isMatchRunning ? Color.Info : Color.Primary)"
             Variant="Variant.Outlined"
-            title="@(_isMatchRunning?"Pause":"Continue")"
-            Icon="@(_isMatchRunning?Icons.Material.Filled.Pause:Icons.Material.Filled.PlayArrow)"
+            title="@(_isMatchRunning ? "Pause" : "Continue")"
+            Icon="@(_isMatchRunning ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow)"
         />
-        
-        <MudIconButton 
-            OnClick="EndMatch" 
+
+        <MudIconButton
+            OnClick="EndMatch"
             Variant="Variant.Outlined"
             Icon="@Icons.Material.Filled.Stop"
-            />
+        />
     </MudButtonGroup>
 
     <MudContainer Style="display: flex;align-items: center;justify-content: center;flex-wrap: wrap">
@@ -56,7 +61,7 @@ else
         {
             @foreach (var user in _players)
             {
-                <MudCard Style="min-width: 30%;flex-grow: 1;margin:2px" Outlined >
+                <MudCard Style="min-width: 30%;flex-grow: 1;margin:2px" Outlined>
                     <MudCardHeader Style="display:flex;align-items: center;justify-content: center">
                         <MudText>
                             @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : $"IN-ACTIVE({user.NotActiveReason})")
@@ -84,6 +89,8 @@ else
     [Inject] private IMatchService _matchService { get; set; }
     [Inject] private IMatchActionService _matchActionService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
+    [Inject] private ISnackbar _snackbar { get; set; }
+
     private MatchInputModel _inputModel = new MatchInputModel();
     private List<ApplicationUser> _players { get; set; }
     private Match _match = null;
@@ -96,6 +103,7 @@ else
     {
         base.OnInitialized();
         _timer = new Timer(async obj => await InvokeAsync(StateHasChanged), null, 0, 1000);
+        
     }
 
     private TimeSpan DurationSinceBegin()
@@ -109,22 +117,25 @@ else
             return;
         if (!user.IsActivePlayer)
             return;
-        await _matchActionService.CreateMatchActionAsync(
-            new MatchAction() {
+        var isSuccess = await _matchActionService.CreateMatchActionAsync(
+            new MatchAction()
+            {
                 ActionType = matchAction,
                 TimeAfterMatchBeginSeconds = (float)DurationSinceBegin().TotalSeconds,
-                Player=user,
-                Match=_match,
-
+                Player = user,
+                Match = _match,
             });
-
-        Console.WriteLine($"ADDED ACTION: {user.DisplayName} - {matchAction.ToString()}");
+        if (isSuccess)
+            _snackbar.Add($"User: {user.DisplayName} did {matchAction.ToString()}", Severity.Success);
+        else
+            _snackbar.Add($"Error recording Action {matchAction.ToString()} for {user.DisplayName}", Severity.Error);
     }
 
     private void PauseMatch()
     {
         _isMatchRunning = false;
         _stopwatch.Stop();
+        _snackbar.Add($"Match paused",Severity.Info);
     }
 
     private async Task<MatchResult?> OpenGetMatchResultDialog()
@@ -138,14 +149,13 @@ else
         };
 
         var dialog = await _dialogService.ShowAsync<GetMatchResultDialog>("Match Result", options);
-        
+
         var result = await dialog.Result;
         if (result?.Canceled == false)
         {
             _matchResult = (MatchResult?)result.Data;
         }
 
-        
 
         return _matchResult;
     }
@@ -160,10 +170,12 @@ else
             await _matchService.UpdateMatchAsync(_match);
             _match = null;
             _inputModel = new MatchInputModel();
+            _snackbar.Add($"Match ended",Severity.Success);
         }
         else
         {
             ContinueMatch();
+            
         }
     }
 
@@ -171,6 +183,7 @@ else
     {
         _isMatchRunning = true;
         _stopwatch.Start();
+        _snackbar.Add("Continue Match",Severity.Info);
     }
 
     private class MatchInputModel
@@ -197,8 +210,8 @@ else
                 .OrderBy(player => !player.IsActivePlayer).ToList();
 
 
-            var matchDto = new MatchCreateDto(_inputModel.Name,MatchResult.UnSet, 
-                _inputModel.MatchDate.Value + _inputModel.MatchTime.Value, 
+            var matchDto = new MatchCreateDto(_inputModel.Name, MatchResult.UnSet,
+                _inputModel.MatchDate.Value + _inputModel.MatchTime.Value,
                 _players.Select(p => p.Id).ToList(), []);
             _match = await _matchService.CreateMatchAsync(matchDto);
             if (_match != null)
@@ -207,10 +220,13 @@ else
                 _stopwatch.Start();
                 _isMatchRunning = true;
             }
+
+            _snackbar.Add("Match began",Severity.Success);
         }
         else
         {
             _match = null;
+            _snackbar.Add("Failed to start match", Severity.Error);
         }
     }
 

@@ -5,8 +5,10 @@
 @using SportStatisticsApp.Services.Matches
 @attribute [Authorize(Roles = $"{Roles.Coach},{Roles.TeamPlayer}")]
 @rendermode InteractiveServer
+
 <MudDialogProvider/>
 <MudPopoverProvider/>
+<MudSnackbarProvider/>
 
 <MudText Style="display: flex;align-items: center;justify-content: center;" Typo="Typo.h3">Matches</MudText>
 
@@ -68,6 +70,8 @@
 @code {
     [Inject] private IMatchService _matchService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
+    [Inject] private ISnackbar _snackbar { get; set; }
+    
     private IEnumerable<Match> _matches = new List<Match>();
     private string _searchString  = string.Empty;
     
@@ -98,8 +102,11 @@
         if (result == true)
         {
             await _matchService.DeleteMatchAsync(id);
+            _matches = await _matchService.GetMatchesAsync();
+            _snackbar.Add("Deleted match successfully",Severity.Success);
         }
-        StateHasChanged();
+       
+        
     }
 
     
@@ -121,6 +128,12 @@
             if (result != null && !result.Canceled)
             {
                 await _matchService.UpdateMatchAsync(match);
+                _matches = await _matchService.GetMatchesAsync();
+                _snackbar.Add("Updated Match successfully",Severity.Success);
+            }
+            else
+            {
+                _snackbar.Add("Failed to Update match",Severity.Error);
             }
         }
     }

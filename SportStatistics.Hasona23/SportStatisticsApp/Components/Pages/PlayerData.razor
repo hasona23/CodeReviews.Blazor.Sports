@@ -56,12 +56,6 @@ else if(_player != null)
     {
         _player = await _userService.GetUserById(PlayerId);
         notFound = _player == null;
-        for (int i = 0; i < _xAxisLabels.Length; i++)
-        {
-           Console.WriteLine(
-               Convert.ToDouble(_player.MatchesPlayed[0]?.Actions?.Count(a =>(a.ActionType.ToString() == _xAxisLabels[i] 
-                                                           && a.Player.Id == PlayerId)) ?? 0));
-        }
     }
 
     protected override void OnInitialized()

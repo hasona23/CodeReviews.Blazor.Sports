@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor;
 using SportStatisticsApp.Components;
 using SportStatisticsApp.Components.Account;
 using SportStatisticsApp.Data;
@@ -37,7 +38,13 @@ builder.Services.AddIdentity<ApplicationUser,IdentityRole>(options => options.Si
     .AddRoles<IdentityRole>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
-builder.Services.AddMudServices();
+builder.Services.AddMudServices(options =>
+    options.SnackbarConfiguration = new SnackbarConfiguration()
+    {
+        HideTransitionDuration = 500,
+        SnackbarVariant = Variant.Outlined,
+        NewestOnTop = true,
+    });
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())

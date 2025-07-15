@@ -64,7 +64,7 @@ else
                 <MudCard Style="min-width: 30%;flex-grow: 1;margin:2px" Outlined>
                     <MudCardHeader Style="display:flex;align-items: center;justify-content: center">
                         <MudText>
-                            @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : $"IN-ACTIVE({user.NotActiveReason})")
+                            @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : $"Not Active: {user.NotActiveReason}")
                         </MudText>
                     </MudCardHeader>
 

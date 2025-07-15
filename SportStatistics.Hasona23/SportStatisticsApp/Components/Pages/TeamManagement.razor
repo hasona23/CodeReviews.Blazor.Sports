@@ -26,11 +26,11 @@
                     <MudCard Style="min-width: 32%;margin: 2px;flex-grow: 1" Outlined="true">
                         <MudCardHeader Style="display: flex;align-items: center;flex-direction: column">
                             <MudText Color="Color.Primary" Typo="Typo.h6">@player.DisplayName</MudText>
-                            <MudText Color="Color.Default" Typo="Typo.subtitle1">@player.Email</MudText>
+                            <MudText Color="Color.Secondary" Typo="Typo.subtitle1">@player.Email</MudText>
                         </MudCardHeader>
                         <MudCardContent>
                             <MudText>
-                                @(player.IsActivePlayer ? "Active" : $"Disabled({player.NotActiveReason})")
+                                @(player.IsActivePlayer ? "Active" : $"Not Active: {player.NotActiveReason}")
                             </MudText>
                             <MudText>Matches played
                                 : @(player.MatchesPlayed != null ? $"{player.MatchesPlayed.Count}" : "NULL")</MudText>
@@ -84,7 +84,7 @@
                         <MudCardHeader Style="display: flex;flex-direction: column;align-items: center">
                             <MudText Color="Color.Primary" Typo="Typo.h6">@pendingUser.DisplayName</MudText>
 
-                            <MudText Color="Color.Default" Typo="Typo.subtitle1">@pendingUser.Email</MudText>
+                            <MudText Color="Color.Secondary" Typo="Typo.subtitle1">@pendingUser.Email</MudText>
                         </MudCardHeader>
                         <MudCardContent>
                             <MudCardActions Style="display: flex;align-items: center;justify-content: center">

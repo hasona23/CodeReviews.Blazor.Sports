@@ -1,0 +1,91 @@
+﻿@page "/playerData/{PlayerId}"
+@using SportStatisticsApp.Data
+@using SportStatisticsApp.Models
+@using SportStatisticsApp.Services.Users
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+@if (_player != null)
+{
+    <MudText Typo="Typo.h3" Style="display: flex;align-items: center;justify-content: center" Color="Color.Primary">@_player.DisplayName</MudText>
+    
+    <MudText Typo="Typo.subtitle1" Style="display: flex;align-items: center;justify-content: center" Color="Color.Secondary">@_player.Email</MudText>
+}
+@if (notFound)
+{
+    <MudContainer Style="display: flex;align-items: center;justify-content: center">
+    <MudText>Player Not found with ID : @PlayerId</MudText>
+    <MudButton Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo("teamManagement"))">Back to Team management</MudButton>
+    </MudContainer>
+}
+else if(_player != null)
+{
+    if (_player.MatchesPlayed != null)
+    {
+        if (_player.MatchesPlayed.Any())
+        {
+            <MudExpansionPanels Outlined >
+                @foreach (Match match in _player.MatchesPlayed)
+                {
+                    <MudExpansionPanel
+                        Text=@($"{match.Name} - {match.Date:dd-MM-yyyy} - {match.MatchResult.ToString()}")>
+                        <MudChart ChartType="ChartType.Bar" 
+                                  Style="display: flex;align-items: center;justify-content: center;margin:20px"
+                                  ChartSeries="@(GetChartSeries(match))" XAxisLabels="_xAxisLabels" 
+                                  AxisChartOptions="@(new AxisChartOptions(){XAxisLabelRotation=20,})"
+                                  ChartOptions="@(new ChartOptions(){ShowToolTips=false,ShowLegend=false,YAxisTicks=1})"
+                                  />
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        }
+        else
+        {
+            <MudText Color="Color.Primary">No matches</MudText>
+        }
+    }   
+}
+
+@code {
+    [Parameter] public string PlayerId { get; set; }
+    [Inject] private IUserService _userService { get; set; }
+    private ApplicationUser _player;
+    private bool notFound = false;
+    private string[] _xAxisLabels;
+    protected override async Task OnParametersSetAsync()
+    {
+        _player = await _userService.GetUserById(PlayerId);
+        notFound = _player == null;
+        for (int i = 0; i < _xAxisLabels.Length; i++)
+        {
+           Console.WriteLine(
+               Convert.ToDouble(_player.MatchesPlayed[0]?.Actions?.Count(a =>(a.ActionType.ToString() == _xAxisLabels[i] 
+                                                           && a.Player.Id == PlayerId)) ?? 0));
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _xAxisLabels = Enum.GetValues<MatchActionType>().Select(a => a.ToString()).ToArray();
+    }
+
+    private List<ChartSeries> GetChartSeries(Match match)
+    {
+        
+            ChartSeries chartSeries = new ()
+            {
+                Data = new double[_xAxisLabels.Length],
+                ShowDataMarkers = false,
+                LineDisplayType = LineDisplayType.Area,
+                
+            };
+            for (int i = 0; i < _xAxisLabels.Length; i++)
+            {
+                chartSeries.Data[i] = (int)Convert.ToDouble(match?.Actions?.Count(a =>(a.ActionType.ToString() == _xAxisLabels[i] && a.Player.Id == PlayerId)) ?? 0d);
+            }
+
+            return [chartSeries];
+        
+            
+    }
+}

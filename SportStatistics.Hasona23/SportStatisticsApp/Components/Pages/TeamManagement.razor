@@ -43,17 +43,23 @@
 
                                 <MudSpacer/>
 
-                                <MudButton
+                                <MudIconButton
                                     Size="@Size.Small" Variant="@Variant.Filled"
-                                    Color="@Color.Secondary">
-                                    Details(TODO)
-                                </MudButton>
+                                    Color="@Color.Secondary"
+                                    Icon="@Icons.Material.Outlined.Notes"
+                                    @onclick="@(() => _navigationManager.NavigateTo($"/playerData/{player.Id}"))"
+                                    title="Details">
+                                    
+                                </MudIconButton>
                                 <MudSpacer/>
-                                <MudButton Size="@Size.Small" Variant="@Variant.Filled"
+                                <MudIconButton Size="@Size.Small" Variant="@Variant.Filled"
                                            OnClick="@(async () => await RemoveFromTeam(@player))"
-                                           Color="@Color.Error">
+                                           Color="@Color.Error"
+                                           Icon="@Icons.Material.Outlined.PersonRemove"
+                                           title="Kick from Team"
+                                           >
                                     Kick from Team
-                                </MudButton>
+                                </MudIconButton>
                             </MudCardActions>
                         </MudCardContent>
 
@@ -77,16 +83,19 @@
                         </MudCardHeader>
                         <MudCardContent>
                             <MudCardActions Style="display: flex;align-items: center;justify-content: center">
-                                <MudButton Size="Size.Small" Variant="@Variant.Filled"
+                                <MudIconButton Size="Size.Small" Variant="@Variant.Filled"
                                            OnClick="@(async () => await AddUserToTeam(@pendingUser))"
-                                           Color="@Color.Primary">Add To Team
-                                </MudButton>
+                                           Color="@Color.Primary"
+                                           Icon="@Icons.Material.Rounded.Add"
+                                           title="Add to Team">
+                                </MudIconButton>
                                 <MudSpacer/>
-                                <MudButton Size="@Size.Small" Variant="@Variant.Filled"
+                                <MudIconButton Size="@Size.Small" Variant="@Variant.Filled"
                                            OnClick="@(async () => await DeleteUser(@pendingUser))"
-                                           Color="@Color.Error">
-                                    Delete
-                                </MudButton>
+                                           Color="@Color.Error" Icon="@Icons.Material.Outlined.Delete"
+                                           title="Delete User">
+                                    
+                                </MudIconButton>
                             </MudCardActions>
                         </MudCardContent>
                     </MudCard>
@@ -101,6 +110,7 @@
 
     [Inject] private IUserService _userService { get; set; }
     [Inject] private IDialogService _dialogService { get; set; }
+    [Inject] private NavigationManager _navigationManager { get; set; }
     private List<ApplicationUser> _normalUser;
     private List<ApplicationUser> _players;
 

@@ -63,6 +63,7 @@
         
     </MudTable>
     <MudText>SEARCH: (@_searchString)</MudText>
+    
 }
 
 @code {
@@ -102,6 +103,7 @@
         StateHasChanged();
     }
 
+    
     private async Task UpdateMatch(Match match)
     {
         var dialogOptions = new DialogOptions()

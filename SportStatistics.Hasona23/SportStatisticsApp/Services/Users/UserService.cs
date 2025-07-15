@@ -26,6 +26,7 @@ public class UserService:IUserService,IDisposable
             return await db.Users.Include(user => user.MatchActions).Include(user => user.MatchesPlayed).ToListAsync();
         } 
     }
+    
 
     public async Task<List<ApplicationUser>> GetAllUsersInRole(string role="all")
     {
@@ -44,7 +45,13 @@ public class UserService:IUserService,IDisposable
 
     public async Task<ApplicationUser?> GetUserById(string id)
     {
-        return await UserManager.FindByIdAsync(id);
+        await using (var db = await _dbContextFactory.CreateDbContextAsync())
+        {
+            return await db.Users.Where(user => user.Id == id)
+                .Include(user => user.MatchActions)
+                .Include(user => user.MatchesPlayed)
+                .FirstOrDefaultAsync();
+        }
     }
 
     public async Task<ApplicationUser?> GetUserByEmail(string email)

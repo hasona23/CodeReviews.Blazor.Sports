@@ -2,8 +2,6 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Diagnostics
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using SportStatisticsApp.Components.Dialogs
 @using SportStatisticsApp.Data
 @using SportStatisticsApp.Models
@@ -20,11 +18,15 @@
 {
     if (_inputModel != null)
     {
-        <MudTextField Label="Match Name" @bind-Value="_inputModel.Name" For="() => _inputModel.Name"
-                      Required></MudTextField>
-        <MudDatePicker Label="Match Date" @bind-Date="_inputModel.MatchDate" Clearable="false" Required></MudDatePicker>
-        <MudTimePicker Label="Match Time" @bind-Time="_inputModel.MatchTime" Clearable="false" Required></MudTimePicker>
-        <MudButton OnClick="SubmitMatchData">Submit</MudButton>
+        
+        <div style="display: grid;place-items: center">
+            
+            <MudTextField Style="min-width:80%;margin:40px" AdornmentIcon="@Icons.Material.Outlined.Edit" Adornment="Adornment.End" Placeholder="Name" @bind-Value="_inputModel.Name" For="() => _inputModel.Name" Required/>
+            <MudDatePicker Style="min-width:80%;margin:40px"  @bind-Date="_inputModel.MatchDate" Clearable="false" Required/>
+            <MudTimePicker Style="min-width:80%;margin:40px" @bind-Time="_inputModel.MatchTime" Clearable="false" Required/>
+            <MudButton Style="min-width:20%;margin:40px" Color="Color.Primary" OnClick="SubmitMatchData">Submit</MudButton>
+        </div>
+        
     }
 }
 else
@@ -32,27 +34,37 @@ else
     <MudText Style="align-self: center;justify-self: center" Align="Align.Center" Typo="Typo.h3">@_match.Name</MudText>
     <MudText Style="align-self: center;justify-self: center" Align="Align.Center"
              Typo="Typo.h5">@(DurationSinceBegin().Minutes.ToString("00")) : @(DurationSinceBegin().Seconds.ToString("00"))</MudText>
-    <MudButtonGroup>
-        <MudButton
-            OnClick="@(_isMatchRunning ? PauseMatch : ContinueMatch)">@(_isMatchRunning ? "Pause" : "Continue")</MudButton>
-        <MudButton OnClick="EndMatch">End Match</MudButton>
+    <MudButtonGroup Style="display: flex;align-items: center;justify-content: center;margin:10px" Variant="Variant.Outlined" OverrideStyles="false">
+        <MudIconButton 
+            OnClick="@(_isMatchRunning ? PauseMatch : ContinueMatch)"
+            Color="@(_isMatchRunning?Color.Info:Color.Primary)"
+            Variant="Variant.Outlined"
+            title="@(_isMatchRunning?"Pause":"Continue")"
+            Icon="@(_isMatchRunning?Icons.Material.Filled.Pause:Icons.Material.Filled.PlayArrow)"
+        />
+        
+        <MudIconButton 
+            OnClick="EndMatch" 
+            Variant="Variant.Outlined"
+            Icon="@Icons.Material.Filled.Stop"
+            />
     </MudButtonGroup>
 
-    <MudContainer Style="display: grid;grid-template-columns: repeat(3,33%);grid-gap: 2px">
+    <MudContainer Style="display: flex;align-items: center;justify-content: center;flex-wrap: wrap">
 
         @if (_players != null)
         {
             @foreach (var user in _players)
             {
-                <MudCard disabled="@(!user.IsActivePlayer)">
+                <MudCard Style="min-width: 30%;flex-grow: 1;margin:2px" Outlined >
                     <MudCardHeader Style="display:flex;align-items: center;justify-content: center">
                         <MudText>
-                            @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : "IN-ACTIVE")
+                            @user.DisplayName - @(user.IsActivePlayer ? "ACTIVE" : $"IN-ACTIVE({user.NotActiveReason})")
                         </MudText>
                     </MudCardHeader>
 
                     <MudCardContent Style="display: flex;align-items: center;justify-content: center">
-                        <MudButtonGroup disabled="@(!user.IsActivePlayer)">
+                        <MudButtonGroup Variant="Variant.Outlined">
                             @foreach (var matchActionType in Enum.GetValues<MatchActionType>())
                             {
                                 <MudButton Disabled="!user.IsActivePlayer"
@@ -118,7 +130,12 @@ else
     private async Task<MatchResult?> OpenGetMatchResultDialog()
     {
         MatchResult? _matchResult = null;
-        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+        };
 
         var dialog = await _dialogService.ShowAsync<GetMatchResultDialog>("Match Result", options);
         
@@ -176,7 +193,8 @@ else
     {
         if (_inputModel.IsValid())
         {
-            _players = (await _userService.GetAllUsersInRole(Roles.TeamPlayer)).OrderBy(player => !player.IsActivePlayer).ToList();
+            _players = (await _userService.GetAllUsersInRole(Roles.TeamPlayer))
+                .OrderBy(player => !player.IsActivePlayer).ToList();
 
 
             var matchDto = new MatchCreateDto(_inputModel.Name,MatchResult.UnSet, 

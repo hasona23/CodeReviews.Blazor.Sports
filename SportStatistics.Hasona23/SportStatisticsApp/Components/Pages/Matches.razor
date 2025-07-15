@@ -14,14 +14,14 @@
 {
     <MudTable Items="@_matches" Hover Bordered Outlined Striped="false" Filter="@(new Func<Match,bool>(FilterMatches))">
         <ToolBarContent>
-            <MudText Typo="Typo.h6">Periodic Elements</MudText>
+            <MudText Typo="Typo.h6">Matches</MudText>
             <MudSpacer />
             <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" 
                           IconSize="Size.Medium" Class="mt-0"/>
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Id</MudTh>
+            <MudTh >Id</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Date</MudTh>
             <MudTh>Time</MudTh>
@@ -62,7 +62,6 @@
         </RowTemplate>
         
     </MudTable>
-    <MudText>SEARCH: (@_searchString)</MudText>
     
 }
 

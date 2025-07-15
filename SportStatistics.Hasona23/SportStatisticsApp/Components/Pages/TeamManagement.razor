@@ -34,32 +34,33 @@
 
 
                                 
-
+                                <MudButtonGroup Variant="Variant.Outlined" OverrideStyles="false">
                                 <MudButton OnClick="@(async () => await ChangePlayerAvailability(player))"
-                                           Size="@Size.Small" Variant="@Variant.Filled"
+                                           Size="@Size.Small" 
                                            Color="@Color.Primary">
                                     @(player.IsActivePlayer ? "Disable" : $"Enable")
                                 </MudButton>
 
-                                <MudSpacer/>
+                                
 
                                 <MudIconButton
-                                    Size="@Size.Small" Variant="@Variant.Filled"
-                                    Color="@Color.Secondary"
-                                    Icon="@Icons.Material.Outlined.Notes"
+                                    Size="@Size.Small" 
+                                    Color="@Color.Info"
+                                    Icon="@Icons.Material.Filled.Notes"
                                     @onclick="@(() => _navigationManager.NavigateTo($"/playerData/{player.Id}"))"
                                     title="Details">
                                     
                                 </MudIconButton>
-                                <MudSpacer/>
-                                <MudIconButton Size="@Size.Small" Variant="@Variant.Filled"
-                                           OnClick="@(async () => await RemoveFromTeam(@player))"
-                                           Color="@Color.Error"
-                                           Icon="@Icons.Material.Outlined.PersonRemove"
-                                           title="Kick from Team"
-                                           >
+                                
+                                <MudIconButton Size="@Size.Small" 
+                                               OnClick="@(async () => await RemoveFromTeam(@player))"
+                                               Color="@Color.Error"
+                                               Icon="@Icons.Material.Filled.PersonRemove"
+                                               title="Kick from Team"
+                                >
                                     Kick from Team
                                 </MudIconButton>
+                                </MudButtonGroup>
                             </MudCardActions>
                         </MudCardContent>
 
@@ -83,19 +84,21 @@
                         </MudCardHeader>
                         <MudCardContent>
                             <MudCardActions Style="display: flex;align-items: center;justify-content: center">
-                                <MudIconButton Size="Size.Small" Variant="@Variant.Filled"
-                                           OnClick="@(async () => await AddUserToTeam(@pendingUser))"
-                                           Color="@Color.Primary"
-                                           Icon="@Icons.Material.Rounded.Add"
-                                           title="Add to Team">
+                                <MudButtonGroup Variant="Variant.Outlined" OverrideStyles="false">
+                                <MudIconButton Size="Size.Small" 
+                                               OnClick="@(async () => await AddUserToTeam(@pendingUser))"
+                                               Color="@Color.Primary"
+                                               Icon="@Icons.Material.Filled.Add"
+                                               title="Add to Team">
                                 </MudIconButton>
-                                <MudSpacer/>
-                                <MudIconButton Size="@Size.Small" Variant="@Variant.Filled"
-                                           OnClick="@(async () => await DeleteUser(@pendingUser))"
-                                           Color="@Color.Error" Icon="@Icons.Material.Outlined.Delete"
-                                           title="Delete User">
-                                    
+                                
+                                <MudIconButton Size="@Size.Small" 
+                                               OnClick="@(async () => await DeleteUser(@pendingUser))"
+                                               Color="@Color.Error" Icon="@Icons.Material.Filled.Delete"
+                                               title="Delete User">
+
                                 </MudIconButton>
+                                </MudButtonGroup>
                             </MudCardActions>
                         </MudCardContent>
                     </MudCard>

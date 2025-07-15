@@ -8,6 +8,17 @@
         <MudTimePicker @bind-Time="_matchTime" Label="Time">
             
         </MudTimePicker>
+        <MudSelect T="MatchResult" @bind-Value="Match.MatchResult" For="@(() => Match.MatchResult)" Variant="Variant.Outlined" Immediate>
+            @foreach (MatchResult matchResult in Enum.GetValues<MatchResult>())
+            {
+                @if (matchResult != MatchResult.UnSet)
+                {
+                    <MudSelectItem T="MatchResult" Value="matchResult">
+                        @matchResult.ToString()
+                    </MudSelectItem>
+                }
+            }
+        </MudSelect>
         </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancel</MudButton>

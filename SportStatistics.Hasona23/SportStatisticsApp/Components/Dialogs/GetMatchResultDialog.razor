@@ -1,8 +1,8 @@
 ﻿@using SportStatisticsApp.Models
-<MudDialog>
+<MudDialog >
     <DialogContent>
-    
-        <MudSelect T="MatchResult" bind-Value="MatchResult" For="@(() => MatchResult)">
+        
+        <MudSelect T="MatchResult" @bind-Value="MatchResult" For="@(() => MatchResult)" Variant="Variant.Outlined" Immediate>
             @foreach (MatchResult matchResult in Enum.GetValues<MatchResult>())
             {
                 @if (matchResult != MatchResult.UnSet)
@@ -22,7 +22,7 @@
 
 @code {
     
-    public MatchResult MatchResult { get; set; } = MatchResult.Win;
+    public MatchResult MatchResult { get; set; } = MatchResult.UnSet;
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; }
 
@@ -31,5 +31,9 @@
         MudDialog.Close(DialogResult.Ok(MatchResult));
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
 }

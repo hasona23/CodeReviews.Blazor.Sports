@@ -47,6 +47,7 @@ public class MatchService : IMatchService
                     Date = matchDto.Date,
                     Players = players,
                     Actions = actions,
+                    MatchResult = matchDto.MatchResult,
                 };
                 await db.Matches.AddAsync(match);
                 await db.SaveChangesAsync();

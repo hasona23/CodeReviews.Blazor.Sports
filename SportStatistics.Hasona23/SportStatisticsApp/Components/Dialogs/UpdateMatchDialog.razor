@@ -42,7 +42,7 @@
 
     private void Submit()
     {
-        if (_matchDate.HasValue && _matchTime.HasValue)
+        if (_matchDate.HasValue && _matchTime.HasValue && !string.IsNullOrWhiteSpace(Match.Name))
         {
             Match.Date = new DateTime(_matchDate.Value.Year, _matchDate.Value.Month, _matchDate.Value.Day
                 , _matchTime.Value.Hours, _matchTime.Value.Minutes, 00);

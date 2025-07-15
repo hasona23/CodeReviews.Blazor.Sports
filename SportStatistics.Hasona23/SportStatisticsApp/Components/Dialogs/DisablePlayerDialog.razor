@@ -16,7 +16,7 @@
 
     private void Submit()
     {
-        if (!string.IsNullOrEmpty(Reason))
+        if (!string.IsNullOrWhiteSpace(Reason))
         {
             MudDialog.Close(DialogResult.Ok(Reason));
             

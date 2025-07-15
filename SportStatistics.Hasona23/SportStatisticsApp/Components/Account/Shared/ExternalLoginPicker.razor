@@ -23,7 +23,15 @@ else
             <p>
                 @foreach (var provider in externalLogins)
                 {
-                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                    @if (provider.DisplayName.ToLower() == "google")
+                    {
+                        <MudIconButton ButtonType="ButtonType.Submit" Variant="Variant.Outlined" Icon="@Icons.Custom.Brands.Google" Class="btn btn-primary" Color="Color.Primary" Style="min-width: 10rem;min-height: 10rem" name="provider" value="@provider.Name" title=@($"Log in using your {provider.DisplayName} account")/>
+                    }
+                    else
+                    {
+                        <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                       
+                    }
                 }
             </p>
         </div>

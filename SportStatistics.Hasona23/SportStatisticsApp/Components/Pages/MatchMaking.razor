@@ -101,9 +101,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        base.OnInitialized();
         _timer = new Timer(async obj => await InvokeAsync(StateHasChanged), null, 0, 1000);
-        
     }
 
     private TimeSpan DurationSinceBegin()

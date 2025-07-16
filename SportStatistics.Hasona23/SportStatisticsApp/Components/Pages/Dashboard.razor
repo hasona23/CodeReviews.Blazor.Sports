@@ -1,7 +1,111 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SportStatisticsApp.Data
+@using SportStatisticsApp.Models
+@using SportStatisticsApp.Services.Matches
+@attribute [Authorize]
+@rendermode InteractiveServer
 
-<!--
-    This is the split page will have 2 parts
-        1- Current/Last match statistics
-        2- All data (Wins + Loss + Draws + Players Count)
--->
+<div style="display: flex;min-height: 90vh;flex-grow: 1;">
+    <MudPaper MinWidth="50%" Outlined Style="padding: 10px">
+        <div style="display: flex;align-items: center;justify-content: center">
+        <MudText Typo="Typo.h5" >Current Statistics</MudText>
+        </div>
+
+        @if (_currentMatch != null)
+        {
+            <div style="display: flex;align-items: center;justify-content: center;
+            flex-direction: column;margin-bottom: 50px">
+                <MudText Typo="Typo.body1" Color="Color.Primary">@_currentMatch.Name</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Info">@_currentMatch.MatchResult.ToString()</MudText>
+            </div>
+           
+            @if (!_currentMatch.Actions.Any())
+            {
+                <MudText Typo="Typo.subtitle1" Color="Color.Warning" Style="display: flex;align-items: center;justify-content: center">No Actions</MudText>
+            }
+            else
+            {
+                <MudTable Height="500px" Items="@_currentMatch.Actions.OrderByDescending(a => a.TimeAfterMatchBeginSeconds)" Outlined Bordered>
+                    <RowTemplate>
+                        <MudTh>@context.Player.DisplayName</MudTh>
+                        <MudTh>@context.ActionType.ToString()</MudTh>
+                        <MudTh>@(context.TimeAfterMatchBeginSeconds.ToString("00.00"))</MudTh>
+                    </RowTemplate>
+                </MudTable>
+            }
+        }
+
+    </MudPaper>
+    <MudPaper MinWidth="50%" Outlined Style="padding: 10px">
+        <div style="display: flex;align-items: center;justify-content: center;margin:20px">
+            <MudText Typo="Typo.h5" >Team Statistics</MudText>
+        </div>
+        
+        <div style="display: grid;place-items: center;justify-content: center;height: 80%;grid-template-rows: 33% 33% 33%;grid-template-columns: 100%">
+            <MudContainer Style="display: flex;align-items: center;height: 100%;justify-content: center;flex-direction: column; min-width: 80%;padding:10px;margin: 5px;border: 1px solid #1e3e62">
+                <MudText Typo="Typo.h6" Color="Color.Info">Team Count</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@_teamStatistics.TeamPlayersCount</MudText>
+            </MudContainer>
+            
+            <MudContainer Style="display: flex;align-items: center;height: 100%;justify-content: center;flex-direction: column; min-width: 80%;padding:10px;margin: 5px;border: 1px solid #1e3e62">
+                <MudText Typo="Typo.h6" Color="Color.Info">Active Players</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary">@_teamStatistics.ActiveTeamPlayersCount</MudText>
+            </MudContainer>
+            
+            <MudContainer Style="display: flex;align-items: center;height: 100%;justify-content: center;flex-direction: column; min-width: 80%;padding:10px;margin: 5px;border: 1px solid #1e3e62">
+                <MudText Typo="Typo.h6" Color="Color.Info">Matches Played</MudText>
+                <MudText Typo="Typo.h6" Color="Color.Primary">@_teamStatistics.MatchesPlayed</MudText>
+                <MudChipSet T="int" Size="Size.Large" Variant="Variant.Outlined" >
+                    <MudChip Color="Color.Success"   title="Won">@_teamStatistics.MatchesWon</MudChip>
+                    <MudChip Color="Color.Default" title="Draw">@_teamStatistics.MathcesDrawn</MudChip>
+                    <MudChip Color="Color.Error" title="Lost">@_teamStatistics.MatchesLost</MudChip>
+
+                </MudChipSet>
+            </MudContainer>
+        </div>
+    </MudPaper>
+</div>
+@code{
+    
+    [Inject] private IDbContextFactory<ApplicationDbContext> _dbContextFactory { get; set; }
+    [Inject] private UserManager<ApplicationUser> _userManager { get; set; }
+    private Match _currentMatch { get; set; }
+    private TeamStatistics _teamStatistics { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+    [Inject] ILogger<Dashboard> _logger { get; set; }
+    private async Task LoadData()
+    {
+        await using (var dbContext = await _dbContextFactory.CreateDbContextAsync())
+        {
+            _currentMatch = await dbContext.Matches.OrderBy(m => m.Date).Include(m => m.Actions).ThenInclude(a => a.Player).LastAsync();
+            var players = await _userManager.GetUsersInRoleAsync(Roles.TeamPlayer);
+            _teamStatistics = new TeamStatistics()
+            {
+                MatchesPlayed = dbContext.Matches.Count(),
+                MatchesWon = dbContext.Matches.Count(m => m.MatchResult == MatchResult.Win),
+                MatchesLost = dbContext.Matches.Count(m => m.MatchResult == MatchResult.Lose),
+                MathcesDrawn = dbContext.Matches.Count(m => m.MatchResult == MatchResult.Draw),
+                TeamPlayersCount = players.Count,
+                ActiveTeamPlayersCount = players.Count(p => p.IsActivePlayer)
+            };
+            players.Clear();
+
+            _logger.LogCritical("HELLOO");
+        }
+    }
+    private struct TeamStatistics
+    {
+        public int ActiveTeamPlayersCount;
+        public int TeamPlayersCount;
+        public int MatchesPlayed;
+        public int MatchesWon;
+        public int MathcesDrawn;
+        public int MatchesLost;
+    }
+}

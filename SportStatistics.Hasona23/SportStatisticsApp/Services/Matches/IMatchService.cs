@@ -10,4 +10,5 @@ public interface IMatchService
     public Task<Match> CreateMatchAsync(MatchCreateDto matchCreateDto);
     public Task<bool> UpdateMatchAsync(Match match);
     public Task<bool> DeleteMatchAsync(int id);
+    
 }

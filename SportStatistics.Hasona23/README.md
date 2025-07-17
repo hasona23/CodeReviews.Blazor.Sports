@@ -27,4 +27,4 @@ then let's add the ability to use google login
 ```Password123!```
 
 
-Enjoy :smile
+Enjoy 😊 

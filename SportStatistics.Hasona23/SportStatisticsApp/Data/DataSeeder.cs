@@ -8,20 +8,20 @@ public static class DataSeeder
 {
     
     private static Random _rand = new Random();
-    public static void SeedData(IServiceScope scope)
+    public static async Task SeedData(IServiceScope scope)
     {
         using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         using var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>() ;
         using var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         if (!dbContext.Users.Any())
-            SeedUsers(userManager, roleManager);
+            await SeedUsers(userManager, roleManager);
         
         if(!dbContext.MatchActions.Any())
-            SeedMatches(dbContext);
+            await SeedMatches(dbContext);
             
     }
 
-    private static void SeedMatches(ApplicationDbContext context)
+    private static async Task SeedMatches(ApplicationDbContext context)
     {
        
         for (int i = 0; i < 6; i++)
@@ -29,19 +29,20 @@ public static class DataSeeder
             var match = new Match()
             {
                 Date = GetRandomData(),
-                Players = context.Users.Where(usr => usr.DisplayName.Contains("Player")).ToList(),
+                Players = await context.Users.Where(usr => usr.DisplayName.Contains("Player")).ToListAsync(),
                 Name = $"Match_{i}",
                 MatchResult = GetRandomMatchResult(),
             };
-            context.Matches.Add(match);
+            await context.Matches.AddAsync(match);
         }
-        context.SaveChanges();
-        foreach (var match in context.Matches.Include(match => match.Players))
+        await context.SaveChangesAsync();
+        var matches = context.Matches.Include(match => match.Players).ToList();
+        var users = context.Users.Include(user => user.MatchesPlayed).Include(applicationUser => applicationUser.MatchActions).ToList();
+        foreach (var match in matches)
         {
 
-
-            foreach (var user in context.Users.Include(applicationUser => applicationUser.MatchesPlayed)
-                         .Include(applicationUser => applicationUser.MatchActions))
+            
+            foreach (var user in users)
             {
                 if (user.DisplayName.Contains("Coach"))
                     break;
@@ -60,20 +61,20 @@ public static class DataSeeder
                     };
 
 
-                    context.MatchActions.Add(action);
+                    await context.MatchActions.AddAsync(action);
                 }
             }
         }
-        context.SaveChanges();
+        await context.SaveChangesAsync();
     }
 
    
 
-    private static void SeedUsers(UserManager<ApplicationUser> userManager,RoleManager<IdentityRole> roleManager)
+    private static async Task SeedUsers(UserManager<ApplicationUser> userManager,RoleManager<IdentityRole> roleManager)
     {
-        roleManager.CreateAsync(new IdentityRole(Roles.Coach)).Wait();
-        roleManager.CreateAsync(new IdentityRole(Roles.TeamPlayer)).Wait();
-        roleManager.CreateAsync(new IdentityRole(Roles.NormalUser)).Wait();
+        await roleManager.CreateAsync(new IdentityRole(Roles.Coach));
+        await roleManager.CreateAsync(new IdentityRole(Roles.TeamPlayer));
+        await roleManager.CreateAsync(new IdentityRole(Roles.NormalUser));
         //5 main + 2 Substitution + Coach
         for (int i = 0; i < 7; i++)
         {
@@ -83,13 +84,13 @@ public static class DataSeeder
             user.UserName = $"abc12{i}@example.com";
             if (i < 2)
                 user.IsActivePlayer = false;
-            var result = userManager.CreateAsync(user, "Password123!").Result;
+            var result = await userManager.CreateAsync(user, "Password123!");
             if (!result.Succeeded)
             {
                 throw new Exception(result.ToString());
             }
-            user = userManager.FindByEmailAsync($"abc12{i}@example.com").Result;
-            userManager.AddToRoleAsync(user, Roles.TeamPlayer).Wait();
+            user = await userManager.FindByEmailAsync($"abc12{i}@example.com");
+            await userManager.AddToRoleAsync(user, Roles.TeamPlayer);
             
         }
         for (int i = 0; i < 3; i++)
@@ -98,22 +99,22 @@ public static class DataSeeder
             user.DisplayName = $"Normal_{i}";
             user.Email = $"abc13{i}@example.com";
             user.UserName = $"abc13{i}@example.com";
-            var result = userManager.CreateAsync(user, "Password123!").Result;
+            var result = await userManager.CreateAsync(user, "Password123!");
             if (!result.Succeeded)
             {
                 throw new Exception(result.ToString());
             }
-            user = userManager.FindByEmailAsync($"abc13{i}@example.com").Result;
-            userManager.AddToRoleAsync(user, Roles.NormalUser).Wait();
+            user = await userManager.FindByEmailAsync($"abc13{i}@example.com");
+            await userManager.AddToRoleAsync(user, Roles.NormalUser);
             
         }
         var coachUser = Activator.CreateInstance<ApplicationUser>();
         coachUser.DisplayName = $"Mr. Coach";
         coachUser.Email = $"coach@example.com";
         coachUser.UserName = $"coach@example.com";
-        userManager.CreateAsync(coachUser, "Password123!").Wait();
-        coachUser = userManager.FindByEmailAsync($"coach@example.com").Result;
-        userManager.AddToRoleAsync(coachUser, Roles.Coach).Wait();
+        await userManager.CreateAsync(coachUser, "Password123!");
+        coachUser = await userManager.FindByEmailAsync($"coach@example.com");
+        await userManager.AddToRoleAsync(coachUser, Roles.Coach);
     }
     private static MatchActionType GetRandomAction()
     {
@@ -122,7 +123,6 @@ public static class DataSeeder
     }
     private static DateTime GetRandomData()
     {
-        
         return new DateTime(_rand.Next(2010,2026),_rand.Next(1,13),_rand.Next(1,28));
     }
 

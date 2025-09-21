@@ -25,8 +25,8 @@ builder.Services.AddCascadingAuthenticationState()
     .AddAuthentication()
     .AddGoogle(options =>
     {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "ClientId";
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]??"ClientSecret";
     });
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();

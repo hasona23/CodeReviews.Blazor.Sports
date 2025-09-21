@@ -22,4 +22,9 @@ then let's add the ability to use google login
 ``` dotnet build ```
 ``` dotnet run ```
 
-Enjoy :smile
+3- becoming a coach enter in login
+```coach@example.com```
+```Password123!```
+
+
+Enjoy 😊 
